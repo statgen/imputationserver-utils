@@ -176,7 +176,6 @@ public class VcfFileUtil {
 		validChromosomes.add("22");
 		validChromosomes.add("23");
 		validChromosomes.add("X");
-		validChromosomes.add("MT");
 
 		validChromosomes.add("chr1");
 		validChromosomes.add("chr2");
@@ -202,9 +201,7 @@ public class VcfFileUtil {
 		validChromosomes.add("chr22");
 		validChromosomes.add("chr23");
 		validChromosomes.add("chrX");
-		validChromosomes.add("chrMT");
-
-	
+        
 	}
 
 	public static boolean isValidChromosome(String chromosome) {
