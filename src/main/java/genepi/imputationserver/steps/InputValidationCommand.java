@@ -253,7 +253,7 @@ public class InputValidationCommand implements Callable<Integer> {
 		summary.add("Population: " + population);
 		summary.add("Phasing: " + phasing);
 		summary.add("Mode: " + mode);
-		if (r2Filter != null && !r2Filter.isEmpty() && !r2Filter.equals("0")) {
+		if (r2Filter != null && !r2Filter.isEmpty()) {
 			summary.add("Rsq filter: " + r2Filter);
 		}
 		output.message(summary);
