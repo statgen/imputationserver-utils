@@ -5,7 +5,7 @@
 
 	<groupId>statgen</groupId>
 	<artifactId>imputationserver-utils</artifactId>
-	<version>1.5.3-statgen.2</version>
+	<version>1.5.3-statgen.3</version>
 	<packaging>jar</packaging>
 
 	<name>Imputationserver Utils</name>
