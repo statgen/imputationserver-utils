@@ -22,11 +22,11 @@ public class InputValidationCommand implements Callable<Integer> {
 	@Parameters(description = "VCF files")
 	private List<String> files;
 
-	@Option(names = "--population", description = "Reference Population", required = true)
-	private String population;
-
 	@Option(names = "--reference", description = "Reference Panel", required = true)
 	private String reference;
+
+	@Option(names = "--population", description = "Reference Population", required = true)
+	private String population;
 
 	@Option(names = "--build", description = "Build", required = false)
 	private String build = "hg19";
@@ -41,13 +41,13 @@ public class InputValidationCommand implements Callable<Integer> {
 	private String mode = "n/a";
 
 	@Option(names = "--chunksize", description = "Chunksize", required = false)
-	private int chunksize = 20000000;
+	private int chunksize = 20_000_000;
 
 	@Option(names = "--minSamples", description = "Min Samples", required = false)
 	private int minSamples = 20;
 
 	@Option(names = "--maxSamples", description = "Max Samples", required = false)
-	private int maxSamples = 50000;
+	private int maxSamples = 25_000;
 
 	@Option(names = "--contactName", description = "Contact Name", required = false)
 	private String contactName = "n/a";

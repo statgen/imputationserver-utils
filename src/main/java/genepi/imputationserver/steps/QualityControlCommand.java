@@ -31,6 +31,15 @@ public class QualityControlCommand implements Callable<Integer> {
 	@Option(names = "--population", description = "Reference Population", required = true)
 	private String population;
 
+	@Option(names = "--build", description = "Build", required = false)
+	private String build = "hg19";
+
+	@Option(names = "--chunksize", description = "VCF chunksize", required = false)
+	private int chunksize = 20_000_000;
+
+	@Option(names = "--phasing-window", description = "Phasing window", required = false)
+	private int phasingWindow = 5_000_000;
+
 	@Option(names = "--maf-output", description = "MAF file", required = true)
 	private String mafOutput = "";
 
@@ -43,17 +52,8 @@ public class QualityControlCommand implements Callable<Integer> {
 	@Option(names = "--metafiles-out", description = "Metafiles Folder", required = true)
 	private String metafilesOutput = "";
 
-	@Option(names = "--build", description = "Build", required = false)
-	private String build = "hg19";
-
 	@Option(names = "--chain", description = "chainFile", required = false)
 	private String chainFile = "";
-
-	@Option(names = "--chunksize", description = "VCF chunksize", required = false)
-	private int chunksize = 20000000;
-
-	@Option(names = "--phasing-window", description = "Phasing window", required = false)
-	private int phasingWindow = 5000000;
 
 	@Option(names = "--report", description = "Cloudgene Report Output", required = false)
 	private String report = null;
@@ -225,7 +225,7 @@ public class QualityControlCommand implements Callable<Integer> {
 
 		int strandFlips = (int) (panel.getQcFilterByKey("strandFlips"));
 		int alleleSwitches = (int) (panel.getQcFilterByKey("alleleSwitches"));
-		
+
 		if (panel.getRange() != null) {
 			HashSet<RangeEntry> rangeEntries = parseRangeEntries(panel.getRange());
 			task.setRanges(rangeEntries);
