@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class StatisticsTask implements ITask {
@@ -243,8 +243,8 @@ public class StatisticsTask implements ITask {
 					chunks.values().remove(openChunk);
 				}
 			}
-
 		}
+
 		legendReader.close();
 		vcfReader.close();
 
@@ -252,7 +252,6 @@ public class StatisticsTask implements ITask {
 		for (VcfChunk openChunk : chunks.values()) {
 			openChunk.vcfChunkWriter.close();
 			if (openChunk.lastPos >= openChunk.getStart()) {
-				// System.out.println("Chunks " + open);
 				chunkSummary(openChunk, metafileWriter);
 			} else {
 				new File(openChunk.getVcfFilename()).delete();
@@ -260,19 +259,14 @@ public class StatisticsTask implements ITask {
 			}
 		}
 
-		if (!metafileWriter.hasData()) {
-			//FileUtil.deleteFile(metafile);
-		}
-
 		metafileWriter.close();
-
 	}
 
 	private VcfChunk initChunk(String chr, int chunkStart, int chunkEnd, boolean phased, int samples,
 							   List<String> header) throws IOException {
 		overallChunks++;
 
-		String chunkName = null;
+		String chunkName;
 
 		chunkName = FileUtil.path(chunksDir, "chunk_" + chr + "_" +  VcfChunk.format(chunkStart) + "_" +  VcfChunk.format(chunkEnd) + ".vcf.gz");
 
@@ -297,7 +291,6 @@ public class StatisticsTask implements ITask {
 		chunk.vcfChunkWriter = writer;
 
 		return chunk;
-
 	}
 
 	private void processLine(MinimalVariantContext snp, List<SitesEntry> refSnps, int samples, BGzipLineWriter vcfWriter,
@@ -436,59 +429,43 @@ public class StatisticsTask implements ITask {
 		char legendAlt = refSnp.getAltAllele();
 
 		if (matched != null) {
-			/** simple match of ref/alt in study and legend file **/
+			// simple match of ref/alt in study and legend file
 			if (insideChunk) {
 				match++;
 			}
 
 		} else if (GenomicTools.complicatedGenotypes(snp, refSnp)) {
-			/** count A/T C/G genotypes **/
+			// count A/T C/G genotypes
 			if (insideChunk) {
-
 				complicatedGenotypes++;
-
 			}
 
 		} else if (GenomicTools.alleleSwitch(snp, refSnp)) {
-			/**
-			 * simple allele switch check; ignore A/T C/G from above
-			 **/
+			// Simple allele switch check; ignore A/T C/G from above
 			if (insideChunk) {
-
 				alleleSwitch++;
 				filtered++;
 				excludedSnpsWriter.write(snp, "Allele switch. Reference Panel: " + legendRef + "/" + legendAlt);
-
 			}
 			return;
 
 		} else if (GenomicTools.strandFlip(snp, refSnp)) {
-			/** simple strand swaps **/
-
+			// Simple strand swaps
 			if (insideChunk) {
-
 				strandFlipSimple++;
 				filtered++;
 				excludedSnpsWriter.write(snp, "Strand flip. Reference Panel: " + legendRef + "/" + legendAlt);
-
 			}
 			return;
-
 		} else if (GenomicTools.strandFlipAndAlleleSwitch(snp, refSnp)) {
-
 			if (insideChunk) {
-
 				filtered++;
 				strandFlipAndAlleleSwitch++;
 				excludedSnpsWriter.write(snp, "Strand flip and Allele switch. Reference Panel: " + legendRef + "/" + legendAlt);
-
 			}
-
 			return;
-
 		} else if (GenomicTools.alleleMismatch(snp, refSnp)) {
 			// filter allele mismatches
-
 			if (insideChunk) {
 				alleleMismatch++;
 				filtered++;
@@ -508,7 +485,6 @@ public class StatisticsTask implements ITask {
 		}
 
 		if (insideChunk) {
-
 			// allele-frequency check
 			if (alleleFrequencyCheck && refSnp.hasFrequencies()) {
 				SnpStats statistics = GenomicTools.calculateAlleleFreq(snp, refSnp, refSamples);
@@ -524,10 +500,8 @@ public class StatisticsTask implements ITask {
 			vcfWriter.write(snp.getRawLine());
 			chunk.validSnpsChunk++;
 
-			// check if all samples have
-			// enough SNPs
+			// Check if all samples have enough SNPs
 			if (insideChunk) {
-
 				for (int i = 0; i < snp.getNSamples(); i++) {
 					if (snp.isCalled(i)) {
 						chunk.snpsPerSampleCount[i] += 1;
@@ -550,28 +524,20 @@ public class StatisticsTask implements ITask {
 				lowSampleCallRate = true;
 				countLowSamples++;
 			}
-
 		}
 
-		// this checks if the amount of not found SNPs in the reference
-		// panel is
-		// smaller than 50 %. At least 3 SNPs must be included in each chunk
-
+		// this checks if the amount of not found SNPs in the reference panel is
+        // smaller than 50 %. At least 3 SNPs must be included in each chunk
 		double overlap = chunk.foundInLegendChunk / (double) (chunk.foundInLegendChunk + chunk.notFoundInLegendChunk);
 
 		if (overlap >= minReferenceOverlap && chunk.foundInLegendChunk >= minSnps && !lowSampleCallRate
 				&& chunk.validSnpsChunk >= minSnps) {
 
-			// create index
-			// VcfFileUtil.createIndex(chunk.getVcfFilename());
-
 			// update chunk
 			chunk.setSnps(chunk.overallSnpsChunk);
 			chunk.setInReference(chunk.foundInLegendChunk);
 			metafileWriter.write(chunk.serialize());
-
 		} else {
-
 			excludedChunkWriter.write(chunk,  overlap, countLowSamples);
 
 			if (overlap < minReferenceOverlap) {
@@ -581,14 +547,12 @@ public class StatisticsTask implements ITask {
 			} else if (lowSampleCallRate) {
 				removedChunksCallRate++;
 			}
-
 		}
-
 	}
 
 	public List<String> prepareChrX(String filename, boolean phased, HashSet<String> hapSamples) throws IOException {
 
-		List<String> paths = new Vector<String>();
+		List<String> paths = new ArrayList<>();
 		String nonPar = FileUtil.path(chunksDir, X_NON_PAR + ".vcf.gz");
 		VariantContextWriter vcfChunkWriterNonPar = new VariantContextWriterBuilder().setOutputFile(nonPar)
 				.setOption(Options.INDEX_ON_THE_FLY).setOption(Options.ALLOW_MISSING_FIELDS_IN_HEADER)
@@ -611,15 +575,15 @@ public class StatisticsTask implements ITask {
 		vcfChunkWriterPar1.writeHeader(header);
 		vcfChunkWriterPar2.writeHeader(header);
 
-		int mixedGenotypes[] = null;
+		int[] mixedGenotypes = null;
 		int count = 0;
 
-		int nonParStart = 2699520;
-		int nonParEnd = 154931044;
+		int nonParStart = 2_699_520;
+		int nonParEnd = 154_931_044;
 
 		if (build.equals("hg38")) {
-			nonParStart = 2781479;
-			nonParEnd = 155701383;
+			nonParStart = 2_781_479;
+			nonParEnd = 155_701_383;
 		}
 
 		VCFCodec codec = new VCFCodec();
@@ -627,12 +591,10 @@ public class StatisticsTask implements ITask {
 		LineReader reader = new LineReader(filename);
 
 		while (reader.next()) {
-
 			String lineString = reader.get();
 
 			if (!lineString.startsWith("#")) {
-
-				String tiles[] = lineString.split("\t", 6);
+				String[] tiles = lineString.split("\t", 6);
 				String ref = tiles[3];
 				String alt = tiles[4];
 
@@ -655,9 +617,7 @@ public class StatisticsTask implements ITask {
 
 				if (line.getContig().equals("23")) {
 					line = new VariantContextBuilder(line).chr("X").make();
-				}
-
-				else if (line.getContig().equals("chr23")) {
+				} else if (line.getContig().equals("chr23")) {
 					line = new VariantContextBuilder(line).chr("chrX").make();
 				}
 
@@ -668,10 +628,7 @@ public class StatisticsTask implements ITask {
 					if (!paths.contains(par1)) {
 						paths.add(par1);
 					}
-
-				}
-
-				else if (line.getStart() >= nonParStart && line.getStart() <= nonParEnd) {
+				} else if (line.getStart() >= nonParStart && line.getStart() <= nonParEnd) {
 
 					count++;
 
@@ -684,32 +641,24 @@ public class StatisticsTask implements ITask {
 					if (!paths.contains(nonPar)) {
 						paths.add(nonPar);
 					}
-
-				}
-
-				else {
-
+				} else {
 					vcfChunkWriterPar2.add(line);
 
 					if (!paths.contains(par2)) {
 						paths.add(par2);
 					}
-
 				}
-
 			}
-
 		}
 
 		if (mixedGenotypes != null) {
-			for (int i = 0; i < mixedGenotypes.length; i++) {
-				double missingRate = mixedGenotypes[i] / (double) count;
-				if (missingRate > mixedGenotypeschrX) {
-					this.chrXMissingRate = true;
-					break;
-				}
-
-			}
+            for (int mixedGenotype : mixedGenotypes) {
+                double missingRate = mixedGenotype / (double) count;
+                if (missingRate > mixedGenotypeschrX) {
+                    this.chrXMissingRate = true;
+                    break;
+                }
+            }
 		}
 
 		vcfReader.close();
@@ -724,9 +673,7 @@ public class StatisticsTask implements ITask {
 
 	// mixed genotype: ./1; 1/.;
 	private int[] checkMixedGenotypes(int[] mixedGenotypes, VariantContext line) {
-
 		if (mixedGenotypes == null) {
-
 			mixedGenotypes = new int[line.getNSamples()];
 			for (int i = 0; i < line.getNSamples(); i++) {
 				mixedGenotypes[i] = 0;
@@ -735,12 +682,11 @@ public class StatisticsTask implements ITask {
 
 		for (int i = 0; i < line.getNSamples(); i++) {
 			Genotype genotype = line.getGenotype(i);
-
 			if (genotype.isMixed()) {
 				mixedGenotypes[i] += 1;
 			}
-
 		}
+
 		return mixedGenotypes;
 	}
 
@@ -748,7 +694,6 @@ public class StatisticsTask implements ITask {
 							HashSet<String> hapSamples) throws IOException {
 
 		for (final String name : samples) {
-
 			Genotype genotype = snp.getGenotype(name);
 
 			if (hapSamples.contains(name) && genotype.getPloidy() != 1) {
@@ -759,7 +704,6 @@ public class StatisticsTask implements ITask {
 			if (genotype.getPloidy() == 1) {
 				hapSamples.add(name);
 			}
-
 		}
 	}
 
@@ -774,6 +718,7 @@ public class StatisticsTask implements ITask {
 		if (!new File(siteFile).exists()) {
 			throw new IOException("This reference panel doesn't support chromosome " + chromosome + ". File " + siteFile + " not found.");
 		}
+
 		return new SitesFileReader(siteFile, population);
 	}
 

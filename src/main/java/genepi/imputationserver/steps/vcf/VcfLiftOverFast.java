@@ -2,7 +2,8 @@ package genepi.imputationserver.steps.vcf;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 
 import genepi.imputationserver.steps.vcf.sort.VcfLine;
 import genepi.imputationserver.steps.vcf.sort.VcfLineSortingCollection;
@@ -15,14 +16,14 @@ public class VcfLiftOverFast {
 
 	private static final int MAX_RECORDS_IN_RAM = 1000;
 
-	public static Vector<String> liftOver(String input, String output, String chainFile, String tempDir)
+	public static List<String> liftOver(String input, String output, String chainFile, String tempDir)
 			throws IOException {
 
 		LineReader reader = new LineReader(input);
 
 		LiftOver liftOver = new LiftOver(new File(chainFile));
 
-		Vector<String> errors = new Vector<String>();
+		List<String> errors = new ArrayList<>();
 
 		SortingCollection<VcfLine> sorter = VcfLineSortingCollection.newInstance(MAX_RECORDS_IN_RAM, tempDir);
 

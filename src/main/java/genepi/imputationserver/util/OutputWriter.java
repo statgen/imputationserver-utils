@@ -1,13 +1,13 @@
 package genepi.imputationserver.util;
 
-import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.text.StringEscapeUtils;
 
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.List;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Vector;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
@@ -15,9 +15,9 @@ public class OutputWriter {
 
     private String filename;
 
-    private boolean toFile;
+    private final boolean toFile;
 
-    private List<String> lines = new Vector<String>();
+    private final List<String> lines = new ArrayList<>();
 
     // Constructor with no arguments, prints to stdout
     public OutputWriter() {
@@ -122,5 +122,4 @@ public class OutputWriter {
             System.out.println(line);
         }
     }
-
 }

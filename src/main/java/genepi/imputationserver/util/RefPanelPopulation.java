@@ -1,9 +1,9 @@
 package genepi.imputationserver.util;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 public class RefPanelPopulation {
 
@@ -38,7 +38,7 @@ public class RefPanelPopulation {
 	}
 
 	public static List<RefPanelPopulation> fromProperties(List<Map<String, Object>> properties) throws IOException {
-		List<RefPanelPopulation> result = new Vector<RefPanelPopulation>();
+		List<RefPanelPopulation> result = new ArrayList<>();
 		for (Map<String, Object> property : properties) {
 			RefPanelPopulation population = new RefPanelPopulation();
 			if (property.containsKey("id")) {

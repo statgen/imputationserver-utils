@@ -2,8 +2,8 @@ package genepi.imputationserver.steps.vcf;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import genepi.io.FileUtil;
 import java.io.BufferedReader;
@@ -16,25 +16,23 @@ import htsjdk.variant.vcf.VCFHeader;
 
 public class FastVCFFileReader {
 
-	private List<String> samples;
+	private final List<String> samples;
 
 	private int snpsCount = 0;
 
-	private int samplesCount = 0;
+	private final int samplesCount;
 
 	private MinimalVariantContext variantContext;
 
-	private List<String> header = new Vector<>();
+	private final List<String> header = new ArrayList<>();
 
-	private String filename;
+	private final String filename;
 
 	protected BufferedReader in;
 
 	private int lineNumber;
 
-	private String line;
-
-	private VCFLineParser parser;
+    private final VCFLineParser parser;
 
 	public FastVCFFileReader(String filename) throws IOException {
 		// load header
@@ -51,7 +49,6 @@ public class FastVCFFileReader {
 		FileInputStream inputStream = new FileInputStream(filename);
 		InputStream in2 = FileUtil.decompressStream(inputStream);
 		this.in = new BufferedReader(new InputStreamReader(in2));
-
 	}
 
 	public List<String> getGenotypedSamples() {
@@ -72,21 +69,23 @@ public class FastVCFFileReader {
 
 	public boolean next() throws IOException {
 		while(true) {
-			if ((this.line = this.in.readLine()) != null) {
+            String line;
+
+            if ((line = this.in.readLine()) != null) {
 				try {
 					this.lineNumber++;
-					if (this.line.trim().isEmpty()) {
+					if (line.trim().isEmpty()) {
 						continue;
 					}
 
 					// Check if the line starts with '#' and skip processing for header lines
-					if (this.line.startsWith("#")) {
-						header.add(this.line);
+					if (line.startsWith("#")) {
+						header.add(line);
 						continue;
 					}
 
 					// Parse non-header lines
-					this.parseLine(this.line);
+					this.parseLine(line);
 					return true;
 				} catch (Exception var2) {
 					throw new IOException(this.filename + ": Line " + this.lineNumber + ": " + var2.getMessage());
@@ -109,9 +108,7 @@ public class FastVCFFileReader {
 		in.close();
 	}
 
-
 	public List<String> getFileHeader() {
 		return header;
 	}
-
 }

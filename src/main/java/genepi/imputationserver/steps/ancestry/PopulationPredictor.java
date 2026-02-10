@@ -1,11 +1,6 @@
 package genepi.imputationserver.steps.ancestry;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Vector;
+import java.util.*;
 
 import genepi.io.table.reader.CsvTableReader;
 import genepi.io.table.writer.CsvTableWriter;
@@ -44,7 +39,7 @@ public class PopulationPredictor {
 		samplesReader.close();
 		System.out.println("Loaded " + samplesIndex.size() + " reference samples.");
 
-		List<ReferenceSample> samples = new Vector<ReferenceSample>();
+		List<ReferenceSample> samples = new ArrayList<>();
 		samplesReader = new CsvTableReader(referenceFile, '\t');
 		while (samplesReader.next()) {
 			String id = samplesReader.getString("indivID");
@@ -175,11 +170,11 @@ public class PopulationPredictor {
 		return topNeighbors;
 	}
 
-	class Neighbor implements Comparable<Neighbor> {
+	static class Neighbor implements Comparable<Neighbor> {
 
-		private ReferenceSample sample;
+		private final ReferenceSample sample;
 
-		private double distance;
+		private final double distance;
 
 		public Neighbor(ReferenceSample sample, double distance) {
 			super();
@@ -201,7 +196,7 @@ public class PopulationPredictor {
 		}
 	}
 
-	class ReferenceSample {
+	static class ReferenceSample {
 
 		private String label;
 
@@ -225,14 +220,16 @@ public class PopulationPredictor {
 
 		public double distanceTo(double[] point) {
 			double result = 0;
+
 			for (int i = 0; i < pcs.length; i++) {
 				result += Math.pow(point[i] - pcs[i], 2);
 			}
+
 			return Math.sqrt(result);
 		}
 	}
 
-	class PredictedPopulation implements Comparable<PredictedPopulation> {
+	static class PredictedPopulation implements Comparable<PredictedPopulation> {
 
 		private String label;
 
@@ -269,7 +266,5 @@ public class PopulationPredictor {
 		public int compareTo(PredictedPopulation o) {
 			return -Double.compare(getWeight(), o.getWeight());
 		}
-
 	}
-
 }

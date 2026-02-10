@@ -1,9 +1,8 @@
 package genepi.imputationserver.steps.fastqc;
 
 import java.io.IOException;
-import java.util.Vector;
+import java.util.List;
 
-import genepi.imputationserver.steps.fastqc.io.ExcludedSnpsWriter;
 import genepi.imputationserver.steps.vcf.VcfFileUtil;
 import genepi.imputationserver.steps.vcf.VcfLiftOverFast;
 import genepi.io.FileUtil;
@@ -31,7 +30,6 @@ public class LiftOverTask implements ITask {
 	}
 
 	public TaskResults run() throws IOException {
-
 		String excludedSnpsFile = FileUtil.path(statDir, "lift-over.txt");
 		LineWriter excludedSnpsWriter = new LineWriter(excludedSnpsFile);
 
@@ -42,7 +40,7 @@ public class LiftOverTask implements ITask {
 			String output = FileUtil.path(chunksDir, name + ".lifted.vcf.gz");
 			String temp = FileUtil.path(chunksDir, "vcf.sorted");
 			FileUtil.createDirectory(temp);
-			Vector<String> errors = VcfLiftOverFast.liftOver(filename, output, chainFile, temp);
+			List<String> errors = VcfLiftOverFast.liftOver(filename, output, chainFile, temp);
 			
 			// create tabix index
 			if (createIndex) {
@@ -63,7 +61,6 @@ public class LiftOverTask implements ITask {
 		excludedSnpsWriter.close();
 
 		return result;
-
 	}
 
 	public void setCreateIndex(boolean createIndex) {

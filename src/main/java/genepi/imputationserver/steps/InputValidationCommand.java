@@ -1,9 +1,9 @@
 package genepi.imputationserver.steps;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Vector;
 import java.util.concurrent.Callable;
 
 import genepi.imputationserver.util.OutputWriter;
@@ -150,10 +150,9 @@ public class InputValidationCommand implements Callable<Integer> {
 
 	}
 
-	private boolean checkVcfFiles() throws Exception {
-
-		List<VcfFile> validVcfFiles = new Vector<VcfFile>();
-		List<String> chromosomes = new Vector<String>();
+	private boolean checkVcfFiles() {
+		List<VcfFile> validVcfFiles = new ArrayList<>();
+		List<String> chromosomes = new ArrayList<>();
 
 		int chunks = 0;
 		int noSnps = 0;
@@ -164,9 +163,7 @@ public class InputValidationCommand implements Callable<Integer> {
 		Collections.sort(files);
 
 		for (String filename : files) {
-
 			try {
-
 				VcfFile vcfFile = VcfFileUtil.load(filename, chunksize, !noIndex);
 				String chromosome = vcfFile.getChromosome();
 
@@ -201,7 +198,6 @@ public class InputValidationCommand implements Callable<Integer> {
 				}
 
 				if (noSamples > maxSamples && maxSamples != 0) {
-
 					output.error("The maximum number of samples is " + maxSamples + ". Please contact "
 							+ contactName + " (<a href=\"" + contactEmail + "\">" + contactEmail
 							+ "</a>) to discuss this large imputation.");
@@ -221,13 +217,10 @@ public class InputValidationCommand implements Callable<Integer> {
 							+ chromosome + "'.");
 					return false;
 				}
-
-
 			} catch (IOException e) {
 				output.error(e);
 				return false;
 			}
-
 		}
 
 		if (validVcfFiles.isEmpty()) {
@@ -240,7 +233,7 @@ public class InputValidationCommand implements Callable<Integer> {
 			return false;
 		}
 
-		List<String> summary = new Vector<String>();
+		List<String> summary = new ArrayList<>();
 		summary.add(validVcfFiles.size() + " valid VCF file(s) found.");
 		summary.add("");
 		summary.add("Samples: " + noSamples);
@@ -262,18 +255,18 @@ public class InputValidationCommand implements Callable<Integer> {
 		output.print("");
 		output.setCounter("samples", noSamples);
 		output.setCounter("variants",  noSnps);
-		output.setCounter("chromosomes", noSamples * chromosomes.size());
+		output.setCounter("chromosomes", (long)noSamples * (long)chromosomes.size());
 		output.setCounter("runs", 1);
-		return true;
 
+		return true;
 	}
 
-	private boolean checkParameters() throws Exception {
+	private boolean checkParameters() {
 
 		try {
 
 			if (!panel.supportsPopulation(population)) {
-				List<String> messages = new Vector<String>();
+				List<String> messages = new ArrayList<>();
 				messages.add("Population '" + population + "' is not supported by reference panel '" + panel.getId() + "'.");
 				if (panel.getPopulations() != null) {
 					messages.add("Available populations:");

@@ -4,7 +4,7 @@ import java.io.File;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Vector;
+import java.util.ArrayList;
 import java.util.concurrent.Callable;
 import genepi.imputationserver.steps.fastqc.ITask;
 import genepi.imputationserver.steps.fastqc.LiftOverTask;
@@ -107,7 +107,6 @@ public class QualityControlCommand implements Callable<Integer> {
 
 	@Override
 	public Integer call() throws Exception {
-
 		if (report != null) {
 			output = new OutputWriter(report);
 		} else {
@@ -141,11 +140,9 @@ public class QualityControlCommand implements Callable<Integer> {
 		} else {
 			return 1;
 		}
-
 	}
 
 	private String[] liftOver(String[] vcfFilenames) {
-
 		output.warning("Uploaded data is " + build + " and reference is " + panel.getBuild() + ".");
 
 		if (chainFile == null) {
@@ -171,11 +168,9 @@ public class QualityControlCommand implements Callable<Integer> {
 		} else {
 			return null;
 		}
-
 	}
 
 	private boolean analyzeFiles(String[] vcfFilenames) {
-
 		StatisticsTask task = new StatisticsTask();
 		task.setVcfFilenames(vcfFilenames);
 		task.setChunkSize(chunksize);
@@ -184,7 +179,7 @@ public class QualityControlCommand implements Callable<Integer> {
 
 		// check populations
 		if (!panel.supportsPopulation(population)) {
-			List<String> report = new Vector<String>();
+			List<String> report = new ArrayList<>();
 			report.add("Population '" + population + "' is not supported by reference panel '" + panel.getId() + "'.");
 			if (panel.getPopulations() != null) {
 				report.add("Available populations:");
@@ -240,7 +235,7 @@ public class QualityControlCommand implements Callable<Integer> {
 			return false;
 		}
 
-		List<String> text = new Vector<String>();
+		List<String> text = new ArrayList<>();
 
 		text.add("<b>Statistics:</b>");
 		if (panel.getRange() != null) {
@@ -265,7 +260,7 @@ public class QualityControlCommand implements Callable<Integer> {
 
 		output.message(text);
 
-		text = new Vector<String>();
+		text = new ArrayList<>();
 
 		text.add("Excluded sites in total: " + StringUtils.format(task.getFiltered()));
 		text.add("Remaining sites in total: " + StringUtils.format(task.getOverallSnps()));
@@ -351,7 +346,8 @@ public class QualityControlCommand implements Callable<Integer> {
 	}
 
 	private HashSet<RangeEntry> parseRangeEntries(String ranges) {
-		HashSet<RangeEntry> rangeEntries = new HashSet<RangeEntry>();
+		HashSet<RangeEntry> rangeEntries = new HashSet<>();
+
 		for (String range : ranges.split(",")) {
 			String chromosome = range.split(":")[0].trim();
 			String region = range.split(":")[1].trim();
@@ -363,11 +359,11 @@ public class QualityControlCommand implements Callable<Integer> {
 			entry.setEnd(end);
 			rangeEntries.add(entry);
 		}
+
 		return rangeEntries;
 	}
 
 	protected TaskResults runTask(final OutputWriter output, ITask task) {
-
 		try {
 			TaskResults results = task.run();
 
@@ -385,7 +381,6 @@ public class QualityControlCommand implements Callable<Integer> {
 			e.printStackTrace();
 			return result;
 		}
-
 	}
 
 	public void setBuild(String build) {
