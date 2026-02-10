@@ -5,233 +5,183 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-import genepi.command.Command;
-import genepi.io.FileUtil;
 import genepi.io.text.LineReader;
 import htsjdk.variant.vcf.VCFFileReader;
-import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.tribble.index.IndexFactory;
 import htsjdk.tribble.index.tabix.TabixFormat;
 import htsjdk.tribble.index.tabix.TabixIndex;
 import htsjdk.variant.vcf.VCFCodec;
 
-public class VcfFileUtil {
-	
-	public static VcfFile load(String vcfFilename, int chunksize, boolean createIndex) throws IOException {
+public final class VcfFileUtil {
 
-		Set<Integer> chunks = new HashSet<Integer>();
-		Set<String> chromosomes = new HashSet<String>();
-		Set<String> rawChromosomes = new HashSet<String>();
-		int noSnps = 0;
-		int noSamples = 0;
+    private VcfFileUtil() {
+    }
 
-		try {
+    public static VcfFile load(String vcfFilename, int chunksize, boolean createIndex) throws IOException {
+        if (vcfFilename == null) {
+            throw new IllegalArgumentException("vcfFilename must be non-null.");
+        }
 
-			VCFFileReader reader = new VCFFileReader(new File(vcfFilename), false);
+        if (chunksize < 1) {
+            throw new IllegalArgumentException(("chunksize must be strictly positive."));
+        }
 
-			noSamples = reader.getFileHeader().getGenotypeSamples().size();
+        Set<Integer> chunks = new HashSet<>();
+        Set<String> chromosomes = new HashSet<>();
+        Set<String> rawChromosomes = new HashSet<>();
+        int noSnps = 0;
+        int noSamples;
 
-			reader.close();
+        try {
+            VCFFileReader reader = new VCFFileReader(new File(vcfFilename), false);
+            noSamples = reader.getFileHeader().getGenotypeSamples().size();
+            reader.close();
 
-			LineReader lineReader = new LineReader(vcfFilename);
+            LineReader lineReader = new LineReader(vcfFilename);
+            boolean phased = true;
 
-			boolean phased = true;
-			boolean firstLine = true;
-			while (lineReader.next()) {
+            while (lineReader.next()) {
+                String line = lineReader.get();
 
-				String line = lineReader.get();
+                if (!line.startsWith("#")) {
+                    String[] tiles = line.split("\t", 10);
 
-				if (!line.startsWith("#")) {
+                    if (tiles.length < 3) {
+                        throw new IOException("The provided VCF file is not tab-delimited");
+                    }
 
-					String tiles[] = line.split("\t", 10);
+                    String chromosome = tiles[0];
+                    rawChromosomes.add(chromosome);
+                    chromosome = chromosome.replaceAll("chr", "");
+                    int position = Integer.parseInt(tiles[1]);
 
-					if (tiles.length < 3) {
-						throw new IOException("The provided VCF file is not tab-delimited");
-					}
+                    if (phased) {
+                        boolean containsSymbol = tiles[9].contains("/");
+                        if (containsSymbol) {
+                            phased = false;
+                        }
+                    }
 
-					String chromosome = tiles[0];
-					rawChromosomes.add(chromosome);
-					chromosome = chromosome.replaceAll("chr", "");
-					int position = Integer.parseInt(tiles[1]);
+                    chromosomes.add(chromosome);
+                    if (chromosomes.size() > 1) {
+                        throw new IOException(
+                                "The provided VCF file contains more than one chromosome. Please split your input VCF file by chromosome");
+                    }
 
-					if (phased) {
-						boolean containsSymbol = tiles[9].contains("/");
+                    String ref = tiles[3];
+                    String alt = tiles[4];
 
-						if (containsSymbol) {
-							phased = false;
-						}
+                    if (ref.equals(alt)) {
+                        throw new IOException("The provided VCF file is malformed at variation " + tiles[2]
+                                + ": reference allele (" + ref + ") and alternate allele  (" + alt + ") are the same.");
+                    }
 
-					}
+                    int chunk = position / chunksize;
+                    if (position % chunksize == 0) {
+                        chunk = chunk - 1;
+                    }
+                    chunks.add(chunk);
+                    noSnps++;
 
-					chromosomes.add(chromosome);
-					if (chromosomes.size() > 1) {
-						throw new IOException(
-								"The provided VCF file contains more than one chromosome. Please split your input VCF file by chromosome");
-					}
+                } else {
+                    if (line.startsWith("#CHROM")) {
+                        String[] tiles = line.split("\t");
 
-					String ref = tiles[3];
-					String alt = tiles[4];
+                        // check sample names, stop when not unique
+                        HashSet<String> samples = new HashSet<>();
 
-					if (ref.equals(alt)) {
-						throw new IOException("The provided VCF file is malformed at variation " + tiles[2]
-								+ ": reference allele (" + ref + ") and alternate allele  (" + alt + ") are the same.");
-					}
+                        for (String sample : tiles) {
+                            if (samples.contains(sample)) {
+                                reader.close();
+                                throw new IOException("Two individuals or more have the following ID: " + sample);
+                            }
+                            samples.add(sample);
+                        }
+                    }
+                }
+            }
 
-					int chunk = position / chunksize;
-					if (position % chunksize == 0) {
-						chunk = chunk - 1;
-					}
-					chunks.add(chunk);
-					noSnps++;
+            lineReader.close();
 
-				} else {
+            // create index
+            if (createIndex && !new File(vcfFilename + ".tbi").exists()) {
+                try {
+                    createIndex(vcfFilename);
+                } catch (Exception e) {
+                    throw new IOException(
+                            "The provided VCF file is malformed. Error during index creation: " + e.getMessage());
+                }
+            }
 
-					if (line.startsWith("#CHROM")) {
+            VcfFile pair = new VcfFile();
+            pair.setVcfFilename(vcfFilename);
+            pair.setIndexFilename(vcfFilename + ".tbi");
+            pair.setNoSnps(noSnps);
+            pair.setNoSamples(noSamples);
+            pair.setChunks(chunks);
+            pair.setChromosomes(chromosomes);
 
-						String[] tiles = line.split("\t");
+            boolean hasChrPrefix = false;
+            for (String chromosome : rawChromosomes) {
+                if (chromosome.startsWith("chr")) {
+                    hasChrPrefix = true;
+                    break;
+                }
+            }
 
-						// check sample names, stop when not unique
-						HashSet<String> samples = new HashSet<>();
+            pair.setRawChromosomes(rawChromosomes);
+            pair.setChrPrefix(hasChrPrefix);
+            pair.setPhased(phased);
+            pair.setChunkSize(chunksize);
 
-						for (int i = 0; i < tiles.length; i++) {
+            return pair;
 
-							String sample = tiles[i];
+        } catch (Exception e) {
+            throw new IOException(e.getMessage());
+        }
+    }
 
-							if (samples.contains(sample)) {
-								reader.close();
-								throw new IOException("Two individuals or more have the following ID: " + sample);
-							}
-							samples.add(sample);
-						}
-					}
+    private static final Set<String> validChromosomes = Set.of(
+            "1", "2", "3", "4", "5", "6", "7", "8", "9",
+            "10", "11", "12", "13", "14", "15", "16", "17", "18", "19",
+            "20", "21", "22", "23", "X",
 
-				}
+            "chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9",
+            "chr10", "chr11", "chr12", "chr13", "chr14", "chr15", "chr16", "chr17", "chr18", "chr19",
+            "chr20", "chr21", "chr22", "chr23", "chrX"
+    );
 
-			}
-			lineReader.close();
+    public static boolean isValidChromosome(String chromosome) {
+        return validChromosomes.contains(chromosome);
+    }
 
-			// create index
-			if (createIndex && !new File(vcfFilename + ".tbi").exists()) {
+    public static boolean isChrX(String chromosome) {
+        return chromosome.equals("X")
+                || chromosome.equals("23")
+                || chromosome.equals("chrX")
+                || chromosome.equals("chr23");
+    }
 
-				try {
-					createIndex(vcfFilename);
-				} catch (Exception e) {
-					throw new IOException(
-							"The provided VCF file is malformed. Error during index creation: " + e.getMessage());
-				}
+    public static boolean isChrMT(String chromosome) {
+        return chromosome.equals("MT") || chromosome.equals("chrMT");
+    }
 
-			}
+    public static void createIndex(String vcfFilename, boolean force) throws IOException {
+        File index = new File(vcfFilename + ".tbi");
 
-			VcfFile pair = new VcfFile();
-			pair.setVcfFilename(vcfFilename);
-			pair.setIndexFilename(vcfFilename + ".tbi");
-			pair.setNoSnps(noSnps);
-			pair.setNoSamples(noSamples);
-			pair.setChunks(chunks);
-			pair.setChromosomes(chromosomes);
-			
-			boolean hasChrPrefix = false;
-			for (String chromosome: rawChromosomes){
-				if (chromosome.startsWith("chr")){
-					hasChrPrefix = true;
-				}
-			}
-			pair.setRawChromosomes(rawChromosomes);
-			pair.setChrPrefix(hasChrPrefix);
-			pair.setPhased(phased);
-			pair.setChunkSize(chunksize);
-			return pair;
+        if (force) {
+            if (index.exists()) {
+                index.delete();
+            }
+        }
 
-		} catch (Exception e) {
-			throw new IOException(e.getMessage());
-		}
+        if (!index.exists()) {
+            createIndex(vcfFilename);
+        }
+    }
 
-	}
-
-	public static Set<String> validChromosomes = new HashSet<String>();
-
-	static {
-
-		validChromosomes.add("1");
-		validChromosomes.add("2");
-		validChromosomes.add("3");
-		validChromosomes.add("4");
-		validChromosomes.add("5");
-		validChromosomes.add("6");
-		validChromosomes.add("7");
-		validChromosomes.add("8");
-		validChromosomes.add("9");
-		validChromosomes.add("10");
-		validChromosomes.add("11");
-		validChromosomes.add("12");
-		validChromosomes.add("13");
-		validChromosomes.add("14");
-		validChromosomes.add("15");
-		validChromosomes.add("16");
-		validChromosomes.add("17");
-		validChromosomes.add("18");
-		validChromosomes.add("19");
-		validChromosomes.add("20");
-		validChromosomes.add("21");
-		validChromosomes.add("22");
-		validChromosomes.add("23");
-		validChromosomes.add("X");
-
-		validChromosomes.add("chr1");
-		validChromosomes.add("chr2");
-		validChromosomes.add("chr3");
-		validChromosomes.add("chr4");
-		validChromosomes.add("chr5");
-		validChromosomes.add("chr6");
-		validChromosomes.add("chr7");
-		validChromosomes.add("chr8");
-		validChromosomes.add("chr9");
-		validChromosomes.add("chr10");
-		validChromosomes.add("chr11");
-		validChromosomes.add("chr12");
-		validChromosomes.add("chr13");
-		validChromosomes.add("chr14");
-		validChromosomes.add("chr15");
-		validChromosomes.add("chr16");
-		validChromosomes.add("chr17");
-		validChromosomes.add("chr18");
-		validChromosomes.add("chr19");
-		validChromosomes.add("chr20");
-		validChromosomes.add("chr21");
-		validChromosomes.add("chr22");
-		validChromosomes.add("chr23");
-		validChromosomes.add("chrX");
-
-	}
-
-	public static boolean isValidChromosome(String chromosome) {
-		return validChromosomes.contains(chromosome);
-	}
-
-	public static boolean isChrX(String chromosome) {
-		return chromosome.equals("X") || chromosome.equals("23") || chromosome.equals("chrX") || chromosome.equals("chr23");
-	}
-	
-	public static boolean isChrMT(String chromosome) {
-		return chromosome.equals("MT") || chromosome.equals("chrMT");
-	}
-
-	public static void createIndex(String vcfFilename, boolean force) throws IOException{
-		if (force){
-			if (new File(vcfFilename + ".tbi").exists()){
-				new File(vcfFilename + ".tbi").delete();
-			}
-		}
-		if (!new File(vcfFilename + ".tbi").exists()) {
-			createIndex(vcfFilename);
-		}
-	}
-
-
-	public static void createIndex(String vcfFilename) throws IOException {
-		TabixIndex index = IndexFactory.createTabixIndex(new File(vcfFilename), new VCFCodec(), TabixFormat.VCF, null);
-		index.writeBasedOnFeatureFile(new File(vcfFilename));
-
-	}
-
+    public static void createIndex(String vcfFilename) throws IOException {
+        TabixIndex index = IndexFactory.createTabixIndex(new File(vcfFilename), new VCFCodec(), TabixFormat.VCF, null);
+        index.writeBasedOnFeatureFile(new File(vcfFilename));
+    }
 }
