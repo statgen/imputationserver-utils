@@ -133,6 +133,16 @@ public class VcfFileUtilTest {
                         0,
                         false,
                         "The provided VCF file is malformed at variation"
+                ),
+                new LoadTestCase(
+                        "test-data/data/header/minimac_test.50.vcf.gz",
+                        10_000_000,
+                        false,
+                        null,
+                        false,
+                        0,
+                        false,
+                        "No genotypes found in the VCF file."
                 )
         );
 
@@ -155,31 +165,6 @@ public class VcfFileUtilTest {
                 assertTrue(e.getMessage().startsWith(testCase.errorPrefix));
             }
         }
-    }
-
-    @Test
-    public void testLoadEmptyFile() throws IOException {
-        VcfFile vcf;
-        String chr;
-
-        // Loading a header-only file is not an error.
-        vcf = VcfFileUtil.load("test-data/data/header/minimac_test.50.vcf.gz", 1, false);
-        assertNotNull(vcf);
-
-        // However, trying to get its chromosome is an error.
-        try {
-            chr = vcf.getChromosome();
-            fail();
-        } catch (IOException e) {
-            assertTrue(e.getMessage().startsWith("No genotypes found in the VCF file."));
-        }
-
-        // The same sequence of actions works fine if the VCF file contains exactly on chromosome.
-        vcf = VcfFileUtil.load("test-data/data/chr20-phased/chr20.R50.merged.1.330k.recode.small.vcf.gz", 1, false);
-        assertNotNull(vcf);
-
-        chr = vcf.getChromosome();
-        assertEquals("20", chr);
     }
 
     @Test

@@ -1,16 +1,15 @@
 package genepi.imputationserver.steps.vcf;
 
-import java.io.IOException;
 import java.util.Set;
 
 public class VcfFile {
 
 	private Set<Integer> chunks;
 
-	private Set<String> chromosomes;
+	private String chromosome;
 
 	private Set<String> rawChromosomes;
-	
+
 	private String vcfFilename;
 
 	private String indexFilename;
@@ -20,15 +19,14 @@ public class VcfFile {
 	private int noSnps = -1;
 
 	private boolean phased = true;
-	
-	private boolean chrX = false;
-	
-	private int chunkSize;
-	
-	private boolean chrPrefix;
-	
-	public VcfFile() {
 
+	private boolean chrX = false;
+
+	private int chunkSize;
+
+	private boolean chrPrefix;
+
+	public VcfFile() {
 	}
 
 	public int getNoSnps() {
@@ -39,21 +37,14 @@ public class VcfFile {
 		this.noSnps = noSnps;
 	}
 
-	public Set<String> getChromosomes() {
-		return chromosomes;
-	}
-
-	public String getChromosome() throws IOException {
-		if (chromosomes.isEmpty()) {
-			throw new IOException("No genotypes found in the VCF file. It appears the file contains only the header.");
-		}
-		return chromosomes.iterator().next();
+	public String getChromosome() {
+		return chromosome;
 	}
 
 	public String getRawChromosome() {
 		return rawChromosomes.iterator().next();
 	}
-	
+
 	public String getVcfFilename() {
 		return vcfFilename;
 	}
@@ -86,19 +77,19 @@ public class VcfFile {
 		this.noSamples = noSamples;
 	}
 
-	public void setChromosomes(Set<String> chromosomes) {
-		this.chromosomes = chromosomes;
+	public void setChromosome(String chromosome) {
+		this.chromosome = chromosome;
 	}
-	
+
 	public void setRawChromosomes(Set<String> rawChromosomes) {
 		this.rawChromosomes = rawChromosomes;
 	}
-	
-	public void setChrPrefix(boolean chrPrefix){
+
+	public void setChrPrefix(boolean chrPrefix) {
 		this.chrPrefix = chrPrefix;
 	}
-	
-	public boolean hasChrPrefix(){
+
+	public boolean hasChrPrefix() {
 		return this.chrPrefix;
 	}
 
@@ -111,9 +102,10 @@ public class VcfFile {
 	}
 
 	public String toString() {
-		return "Chromosome: " + getChromosomes() + "\n Samples: "
-				+ getNoSamples() + "\n Snps: " + getNoSnps() + "\n Chunks: "
-				+ getChunks().size();
+		return "Chromosome: " + getChromosome()
+				+ "\nSamples: " + getNoSamples()
+				+ "\nSnps: " + getNoSnps()
+				+ "\nChunks: " + getChunks().size();
 	}
 
 	public String[] getFilenames() {
@@ -121,22 +113,17 @@ public class VcfFile {
 	}
 
 	public String getType() {
-
 		if (phased) {
-
 			return "VCF-PHASED";
-
 		} else {
-
 			return "VCF-UNPHASED";
-
 		}
 	}
 
 	public void setChunkSize(int chunkSize) {
 		this.chunkSize = chunkSize;
 	}
-	
+
 	public int getChunkSize() {
 		return chunkSize;
 	}
@@ -148,5 +135,4 @@ public class VcfFile {
 	public void setChrX(boolean chrX) {
 		this.chrX = chrX;
 	}
-
 }
