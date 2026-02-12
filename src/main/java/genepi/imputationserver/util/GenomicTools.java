@@ -5,44 +5,57 @@ import genepi.imputationserver.steps.fastqc.legend.SitesEntry;
 import genepi.imputationserver.steps.vcf.MinimalVariantContext;
 
 public class GenomicTools {
+	private static final String A = "A";
+	private static final String C = "C";
+	private static final String G = "G";
+	private static final String T = "T";
 
-	private static final String GC = "GC";
-	private static final String CG = "CG";
-	private static final String TA = "TA";
+	private static final String AC = "AC";
+	private static final String AG = "AG";
 	private static final String AT = "AT";
+	private static final String CA = "CA";
+	private static final String CG = "CG";
 	private static final String CT = "CT";
 	private static final String GA = "GA";
-	private static final String TC = "TC";
-	private static final String AG = "AG";
+	private static final String GC = "GC";
 	private static final String GT = "GT";
-	private static final String CA = "CA";
+	private static final String TA = "TA";
+	private static final String TC = "TC";
 	private static final String TG = "TG";
-	private static final String AC = "AC";
-	private static final String T = "T";
-	private static final String G = "G";
-	private static final String C = "C";
-	private static final String A = "A";
 
+	/**
+	 * Returns {@code true} if {@code allele} is one of the valid base pair
+	 * letters (A, C, G, T), ignoring case.
+	 */
 	public static boolean isValid(String allele) {
 		return allele.equalsIgnoreCase(A)
-                || allele.equalsIgnoreCase(C)
-                || allele.equalsIgnoreCase(G)
+				|| allele.equalsIgnoreCase(C)
+				|| allele.equalsIgnoreCase(G)
 				|| allele.equalsIgnoreCase(T);
 	}
 
+	/**
+	 * Returns {@code true} if the first character of the {@code snp} REFERENCE
+	 * allele equals the {@code refEntry} REFERENCE allele, and the first character
+	 * of the {@code snp} ALTERNATE allele equals the {@code refEntry} ALTERNATE
+	 * allele
+	 */
 	public static boolean match(MinimalVariantContext snp, SitesEntry refEntry) {
 		char studyRef = snp.getReferenceAllele().charAt(0);
 		char studyAlt = snp.getAlternateAllele().charAt(0);
+
 		char legendRef = refEntry.getRefAllele();
 		char legendAlt = refEntry.getAltAllele();
 
-		if (studyRef == legendRef && studyAlt == legendAlt) {
-			return true;
-		}
-
-		return false;
+		return (studyRef == legendRef) && (studyAlt == legendAlt);
 	}
 
+	/**
+	 * Returns {@code true} if the first character of the {@code snp} REFERENCE
+	 * allele equals the {@code refEntry} ALTERNATE allele, and the first character
+	 * of the {@code snp} ALTERNATE allele equals the {@code refEntry} REFERENCE
+	 * allele
+	 */
 	public static boolean alleleSwitch(MinimalVariantContext snp, SitesEntry refEntry) {
 		char studyRef = snp.getReferenceAllele().charAt(0);
 		char studyAlt = snp.getAlternateAllele().charAt(0);
@@ -50,30 +63,25 @@ public class GenomicTools {
 		char legendRef = refEntry.getRefAllele();
 		char legendAlt = refEntry.getAltAllele();
 
-		// all simple cases
-		if (studyRef == legendAlt && studyAlt == legendRef) {
-			return true;
-		}
-
-		return false;
+		return (studyRef == legendAlt) && (studyAlt == legendRef);
 	}
 
 	public static boolean strandFlip(MinimalVariantContext snp, SitesEntry refEntry) {
 		String studyGenotype = snp.getGenotype();
 		String referenceGenotype = refEntry.getGenotype();
 
-        return switch (studyGenotype) {
-            case AC -> referenceGenotype.equals(TG);
-            case CA -> referenceGenotype.equals(GT);
-            case AG -> referenceGenotype.equals(TC);
-            case GA -> referenceGenotype.equals(CT);
-            case TG -> referenceGenotype.equals(AC);
-            case GT -> referenceGenotype.equals(CA);
-            case CT -> referenceGenotype.equals(GA);
-            case TC -> referenceGenotype.equals(AG);
-            default -> false;
-        };
-    }
+		return switch (studyGenotype) {
+			case AC -> referenceGenotype.equals(TG);
+			case AG -> referenceGenotype.equals(TC);
+			case CA -> referenceGenotype.equals(GT);
+			case CT -> referenceGenotype.equals(GA);
+			case GA -> referenceGenotype.equals(CT);
+			case GT -> referenceGenotype.equals(CA);
+			case TC -> referenceGenotype.equals(AG);
+			case TG -> referenceGenotype.equals(AC);
+			default -> false;
+		};
+	}
 
 	public static boolean complicatedGenotypes(MinimalVariantContext snp, SitesEntry refEntry) {
 		String studyGenotype = snp.getGenotype();
@@ -98,21 +106,21 @@ public class GenomicTools {
 		String studyGenotype = snp.getGenotype();
 		String referenceGenotype = refEntry.getGenotype();
 
-        return switch (studyGenotype) {
-            case AC -> referenceGenotype.equals(GT);
-            case CA -> referenceGenotype.equals(TG);
-            case AG -> referenceGenotype.equals(CT);
-            case GA -> referenceGenotype.equals(TC);
-            case TG -> referenceGenotype.equals(CA);
-            case GT -> referenceGenotype.equals(AC);
-            case CT -> referenceGenotype.equals(AG);
-            case TC -> referenceGenotype.equals(GA);
-            default -> false;
-        };
-    }
+		return switch (studyGenotype) {
+			case AC -> referenceGenotype.equals(GT);
+			case AG -> referenceGenotype.equals(CT);
+			case CA -> referenceGenotype.equals(TG);
+			case CT -> referenceGenotype.equals(AG);
+			case GA -> referenceGenotype.equals(TC);
+			case GT -> referenceGenotype.equals(AC);
+			case TC -> referenceGenotype.equals(GA);
+			case TG -> referenceGenotype.equals(CA);
+			default -> false;
+		};
+	}
 
 	public static ChiSquareObject chiSquare(MinimalVariantContext snp, SitesEntry refSnp, boolean strandSwap,
-											int size) {
+			int size) {
 
 		// calculate allele frequency
 		double chisq = 0;
