@@ -48,12 +48,6 @@ public class InputValidationCommand implements Callable<Integer> {
 	@Option(names = "--maxSamples", description = "Max Samples", required = false)
 	private int maxSamples = 25_000;
 
-	@Option(names = "--contactName", description = "Contact Name", required = false)
-	private String contactName = "n/a";
-
-	@Option(names = "--contactEmail", description = "Contact Mail", required = false)
-	private String contactEmail = "n/a";
-
 	@Option(names = "--no-index", description = "Create no tabix index during validation", required = false)
 	private boolean noIndex = false;
 
@@ -110,14 +104,6 @@ public class InputValidationCommand implements Callable<Integer> {
 
 	public void setMinSamples(int minSamples) {
 		this.minSamples = minSamples;
-	}
-
-	public void setContactName(String contactName) {
-		this.contactName = contactName;
-	}
-
-	public void setContactEmail(String contactEmail) {
-		this.contactEmail = contactEmail;
 	}
 
 	@Override
@@ -186,7 +172,7 @@ public class InputValidationCommand implements Callable<Integer> {
 				// check if all files have same amount of samples
 				if (noSamples != 0 && noSamples != vcfFile.getNoSamples()) {
 					output.error("Please double check, if all uploaded VCF files include the same amount of samples ("
-									+ vcfFile.getNoSamples() + " vs " + noSamples + ")");
+							+ vcfFile.getNoSamples() + " vs " + noSamples + ")");
 					return false;
 				}
 
@@ -203,9 +189,8 @@ public class InputValidationCommand implements Callable<Integer> {
 				}
 
 				if (noSamples > maxSamples && maxSamples != 0) {
-					output.error("The maximum number of samples is " + maxSamples + ". Please contact "
-							+ contactName + " (<a href=\"" + contactEmail + "\">" + contactEmail
-							+ "</a>) to discuss this large imputation.");
+					output.error("The maximum allowed number of samples is " + maxSamples
+							+ ". Your submission contains " + noSamples + " samples, which is above the limit.");
 					return false;
 				}
 
