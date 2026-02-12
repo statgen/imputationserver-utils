@@ -4,6 +4,7 @@ import genepi.imputationserver.steps.fastqc.io.*;
 import genepi.imputationserver.steps.fastqc.legend.SitesEntry;
 import genepi.imputationserver.steps.fastqc.legend.SitesFileReader;
 import genepi.imputationserver.steps.vcf.*;
+import genepi.imputationserver.util.ChromosomeUtil;
 import genepi.imputationserver.util.GenomicTools;
 import genepi.imputationserver.util.StringUtils;
 import genepi.io.FileUtil;
@@ -31,9 +32,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class StatisticsTask implements ITask {
 
-	public static final String X_PAR1 = "X.PAR1";
-	public static final String X_PAR2 = "X.PAR2";
-	public static final String X_NON_PAR = "X.nonPAR";
+	private static final String X_PAR1 = "X.PAR1";
+	private static final String X_PAR2 = "X.PAR2";
+	private static final String X_NON_PAR = "X.nonPAR";
 
 	private String sitesFile;
 	private int refSamples;
@@ -86,17 +87,11 @@ public class StatisticsTask implements ITask {
 	private int removedChunksOverlap;
 	private int removedChunksCallRate;
 
-
 	private SnpMafWriter mafWriter;
-
 	private TypedOnlySnpsWriter typedOnlyWriter;
-
 	private ExcludedSnpsWriter excludedSnpsWriter;
-
 	private ExcludedChunksWriter excludedChunkWriter;
-
 	private ChrXInfoWriter chrXInfoWriter;
-
 	private boolean createIndex = true;
 
 	@Override
@@ -117,7 +112,6 @@ public class StatisticsTask implements ITask {
 		String excludedSnpsFile = FileUtil.path(statDir, "snps-excluded.txt");
 		excludedSnpsWriter = new ExcludedSnpsWriter(excludedSnpsFile);
 
-
 		// excluded chunks
 		String excludedChunkFile = FileUtil.path(statDir, "chunks-excluded.txt");
 		excludedChunkWriter = new ExcludedChunksWriter(excludedChunkFile);
@@ -137,12 +131,11 @@ public class StatisticsTask implements ITask {
 
 			String chromosome = myvcfFile.getChromosome();
 
-			if (VcfFileUtil.isChrMT(chromosome)) {
+			if (ChromosomeUtil.isChrMT(chromosome)) {
 				myvcfFile.setPhased(true);
 			}
 
-			if (VcfFileUtil.isChrX(chromosome)) {
-
+			if (ChromosomeUtil.isChrX(chromosome)) {
 				// split to PAR1, PAR2 and nonPAR
 				List<String> splits = prepareChrX(myvcfFile.getVcfFilename(), myvcfFile.isPhased(), hapSamples);
 
@@ -157,7 +150,6 @@ public class StatisticsTask implements ITask {
 			} else {
 				// chr1-22
 				processFile(myvcfFile);
-
 			}
 		}
 
@@ -168,14 +160,11 @@ public class StatisticsTask implements ITask {
 		excludedSnpsWriter.close();
 
 		qcObject.setSuccess(true);
-
 		return qcObject;
-
 	}
 
 	public void processFile(VcfFile myvcfFile) throws IOException, InterruptedException {
-
-		Map<Integer, VcfChunk> chunks = new ConcurrentHashMap<Integer, VcfChunk>();
+		Map<Integer, VcfChunk> chunks = new ConcurrentHashMap<>();
 
 		String filename = myvcfFile.getVcfFilename();
 
@@ -185,7 +174,7 @@ public class StatisticsTask implements ITask {
 		String contig = myvcfFile.getChromosome();
 
 		// set X region in filename
-		if (VcfFileUtil.isChrX(myvcfFile.getChromosome())) {
+		if (ChromosomeUtil.isChrX(myvcfFile.getChromosome())) {
 			contig = X_NON_PAR;
 			if (filename.contains(X_PAR1)) {
 				contig = X_PAR1;
@@ -263,12 +252,14 @@ public class StatisticsTask implements ITask {
 	}
 
 	private VcfChunk initChunk(String chr, int chunkStart, int chunkEnd, boolean phased, int samples,
-							   List<String> header) throws IOException {
+			List<String> header) throws IOException {
 		overallChunks++;
 
 		String chunkName;
 
-		chunkName = FileUtil.path(chunksDir, "chunk_" + chr + "_" +  VcfChunk.format(chunkStart) + "_" +  VcfChunk.format(chunkEnd) + ".vcf.gz");
+		String start = VcfChunk.format(chunkStart);
+		String end = VcfChunk.format(chunkEnd);
+		chunkName = FileUtil.path(chunksDir, "chunk_" + chr + "_" + start + "_" + end + ".vcf.gz");
 
 		// init chunk
 		VcfChunk chunk = new VcfChunk();
@@ -293,21 +284,19 @@ public class StatisticsTask implements ITask {
 		return chunk;
 	}
 
-	private void processLine(MinimalVariantContext snp, List<SitesEntry> refSnps, int samples, BGzipLineWriter vcfWriter,
-							 VcfChunk chunk)
-			throws IOException, InterruptedException {
+	private void processLine(
+			MinimalVariantContext snp,
+			List<SitesEntry> refSnps,
+			int samples,
+			BGzipLineWriter vcfWriter,
+			VcfChunk chunk)
+			throws IOException {
 
 		if (ranges != null) {
-
-			boolean inRange = false;
-
-			for (RangeEntry range : ranges) {
-
-				if (snp.getContig().equals(range.getChromosome()) && snp.getStart() >= range.getStart()
-						&& snp.getStart() <= range.getEnd()) {
-					inRange = true;
-				}
-			}
+			boolean inRange = ranges.stream().anyMatch(range ->
+					snp.getContig().equals(range.getChromosome())
+					&& snp.getStart() >= range.getStart()
+					&& snp.getStart() <= range.getEnd());
 
 			if (!inRange) {
 				return;
@@ -417,13 +406,13 @@ public class StatisticsTask implements ITask {
 		// get last item to be compatible with old implementation
 
 		SitesEntry matched = null;
-		for (SitesEntry _refSnp :refSnps){
+		for (SitesEntry _refSnp : refSnps) {
 			if (GenomicTools.match(snp, _refSnp)) {
 				matched = _refSnp;
 			}
 		}
 
-		SitesEntry refSnp = refSnps.get(refSnps.size() - 1);
+		SitesEntry refSnp = refSnps.getLast();
 
 		char legendRef = refSnp.getRefAllele();
 		char legendAlt = refSnp.getAltAllele();
@@ -461,7 +450,8 @@ public class StatisticsTask implements ITask {
 			if (insideChunk) {
 				filtered++;
 				strandFlipAndAlleleSwitch++;
-				excludedSnpsWriter.write(snp, "Strand flip and Allele switch. Reference Panel: " + legendRef + "/" + legendAlt);
+				excludedSnpsWriter.write(snp,
+						"Strand flip and Allele switch. Reference Panel: " + legendRef + "/" + legendAlt);
 			}
 			return;
 		} else if (GenomicTools.alleleMismatch(snp, refSnp)) {
@@ -479,7 +469,8 @@ public class StatisticsTask implements ITask {
 			if (insideChunk) {
 				lowCallRate++;
 				filtered++;
-				excludedSnpsWriter.write(snp, "Low call rate. Value: " + (1.0 - snp.getNoCallCount() / (double) snp.getNSamples()));
+				excludedSnpsWriter.write(snp,
+						"Low call rate. Value: " + (1.0 - snp.getNoCallCount() / (double) snp.getNSamples()));
 			}
 			return;
 		}
@@ -527,7 +518,7 @@ public class StatisticsTask implements ITask {
 		}
 
 		// this checks if the amount of not found SNPs in the reference panel is
-        // smaller than 50 %. At least 3 SNPs must be included in each chunk
+		// smaller than 50 %. At least 3 SNPs must be included in each chunk
 		double overlap = chunk.foundInLegendChunk / (double) (chunk.foundInLegendChunk + chunk.notFoundInLegendChunk);
 
 		if (overlap >= minReferenceOverlap && chunk.foundInLegendChunk >= minSnps && !lowSampleCallRate
@@ -538,7 +529,7 @@ public class StatisticsTask implements ITask {
 			chunk.setInReference(chunk.foundInLegendChunk);
 			metafileWriter.write(chunk.serialize());
 		} else {
-			excludedChunkWriter.write(chunk,  overlap, countLowSamples);
+			excludedChunkWriter.write(chunk, overlap, countLowSamples);
 
 			if (overlap < minReferenceOverlap) {
 				removedChunksOverlap++;
@@ -652,13 +643,13 @@ public class StatisticsTask implements ITask {
 		}
 
 		if (mixedGenotypes != null) {
-            for (int mixedGenotype : mixedGenotypes) {
-                double missingRate = mixedGenotype / (double) count;
-                if (missingRate > mixedGenotypeschrX) {
-                    this.chrXMissingRate = true;
-                    break;
-                }
-            }
+			for (int mixedGenotype : mixedGenotypes) {
+				double missingRate = mixedGenotype / (double) count;
+				if (missingRate > mixedGenotypeschrX) {
+					this.chrXMissingRate = true;
+					break;
+				}
+			}
 		}
 
 		vcfReader.close();
@@ -691,7 +682,7 @@ public class StatisticsTask implements ITask {
 	}
 
 	public void checkPloidy(List<String> samples, VariantContext snp, boolean isPhased,
-							HashSet<String> hapSamples) throws IOException {
+			HashSet<String> hapSamples) throws IOException {
 
 		for (final String name : samples) {
 			Genotype genotype = snp.getGenotype(name);
@@ -709,14 +700,15 @@ public class StatisticsTask implements ITask {
 
 	private SitesFileReader getReader(String chromosome) throws IOException {
 		// one file for all chrX legends
-		if (VcfFileUtil.isChrX(chromosome)) {
+		if (ChromosomeUtil.isChrX(chromosome)) {
 			chromosome = "X";
 		}
 
 		String siteFile = StringUtils.resolveVariable(sitesFile, "chr", chromosome);
 
 		if (!new File(siteFile).exists()) {
-			throw new IOException("This reference panel doesn't support chromosome " + chromosome + ". File " + siteFile + " not found.");
+			throw new IOException("This reference panel doesn't support chromosome " + chromosome + ". File " + siteFile
+					+ " not found.");
 		}
 
 		return new SitesFileReader(siteFile, population);

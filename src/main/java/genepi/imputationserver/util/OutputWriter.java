@@ -79,6 +79,10 @@ public class OutputWriter {
         print("::set-counter name=" + counter + ":: " + value);
     }
 
+    public void setValue(String name, String value) {
+        print("::set-value name=" + name + ":: " + value);
+    }
+
     public void printCommand(String type, String message) {
         print(type + " " + message);
     }

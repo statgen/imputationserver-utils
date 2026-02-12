@@ -1,11 +1,10 @@
 package genepi.imputationserver.steps;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.Callable;
 
+import genepi.imputationserver.util.ChromosomeUtil;
 import genepi.imputationserver.util.OutputWriter;
 
 import genepi.imputationserver.steps.vcf.VcfFile;
@@ -40,8 +39,8 @@ public class InputValidationCommand implements Callable<Integer> {
 	@Option(names = "--mode", description = "Mode", required = false)
 	private String mode = "n/a";
 
-	@Option(names = "--chunksize", description = "Chunksize", required = false)
-	private int chunksize = 20_000_000;
+	@Option(names = "--chunksize", description = "Chunk Size", required = false)
+	private int chunkSize = 10_000_000;
 
 	@Option(names = "--minSamples", description = "Min Samples", required = false)
 	private int minSamples = 20;
@@ -64,7 +63,6 @@ public class InputValidationCommand implements Callable<Integer> {
 	private RefPanel panel = null;
 
 	private OutputWriter output = null;
-
 
 	public InputValidationCommand() {
 
@@ -102,8 +100,8 @@ public class InputValidationCommand implements Callable<Integer> {
 		this.mode = mode;
 	}
 
-	public void setChunksize(int chunksize) {
-		this.chunksize = chunksize;
+	public void setChunkSize(int chunkSize) {
+		this.chunkSize = chunkSize;
 	}
 
 	public void setMaxSamples(int maxSamples) {
@@ -124,7 +122,6 @@ public class InputValidationCommand implements Callable<Integer> {
 
 	@Override
 	public Integer call() throws Exception {
-
 		if (report != null) {
 			output = new OutputWriter(report);
 		} else {
@@ -134,7 +131,7 @@ public class InputValidationCommand implements Callable<Integer> {
 		try {
 			panel = RefPanel.loadFromJson(reference);
 		} catch (Exception e) {
-			output.error("Unable to parse reference panel:" ,e);
+			output.error("Unable to parse reference panel:", e);
 			return 1;
 		}
 
@@ -147,12 +144,11 @@ public class InputValidationCommand implements Callable<Integer> {
 		} else {
 			return 0;
 		}
-
 	}
 
 	private boolean checkVcfFiles() {
 		List<VcfFile> validVcfFiles = new ArrayList<>();
-		List<String> chromosomes = new ArrayList<>();
+		Map<String, VcfFile> chromosomeLookup = new HashMap<>();
 
 		int chunks = 0;
 		int noSnps = 0;
@@ -164,20 +160,28 @@ public class InputValidationCommand implements Callable<Integer> {
 
 		for (String filename : files) {
 			try {
-				VcfFile vcfFile = VcfFileUtil.load(filename, chunksize, !noIndex);
+				VcfFile vcfFile = VcfFileUtil.load(filename, chunkSize, !noIndex);
 				String chromosome = vcfFile.getChromosome();
 
-				if (VcfFileUtil.isChrMT(chromosome)) {
-					vcfFile.setPhased(true);
-				}
-
-				if (!VcfFileUtil.isValidChromosome(chromosome)) {
+				if (!ChromosomeUtil.isValidChromosome(chromosome)) {
 					output.error("Invalid chromosome found: " + chromosome);
 					return false;
 				}
 
+				if (ChromosomeUtil.isChrMT(chromosome)) {
+					vcfFile.setPhased(true);
+				}
+
 				validVcfFiles.add(vcfFile);
-				chromosomes.add(chromosome);
+
+				if (chromosomeLookup.containsKey(chromosome)) {
+					VcfFile og = chromosomeLookup.get(chromosome);
+					output.error("Only one file per chromosome allowed. Chromosome " + chromosome + " found in files '"
+							+ og.getVcfFilename() + "' and '" + vcfFile.getVcfFilename() + "'.");
+					return false;
+				}
+
+				chromosomeLookup.put(chromosome, vcfFile);
 
 				// check if all files have same amount of samples
 				if (noSamples != 0 && noSamples != vcfFile.getNoSamples()) {
@@ -193,7 +197,8 @@ public class InputValidationCommand implements Callable<Integer> {
 				phased = phased && vcfFile.isPhased();
 
 				if (noSamples < minSamples && minSamples != 0) {
-					output.error("At least " + minSamples + " samples must be uploaded.");
+					output.error("At least " + minSamples + " samples must be uploaded. Your submission contains "
+							+ noSamples + " samples, which is below the allowed limit.");
 					return false;
 				}
 
@@ -206,14 +211,16 @@ public class InputValidationCommand implements Callable<Integer> {
 
 				if (build.equals("hg19") && vcfFile.hasChrPrefix()) {
 					output.error("Your upload data contains chromosome '" + vcfFile.getRawChromosome()
-							+ "'. This is not a valid hg19 encoding. Please ensure that your input data is build hg19 and chromosome is encoded as '"
+							+ "'. This is not a valid hg19 encoding. "
+							+ "Please ensure that your input data is build hg19 and chromosome is encoded as '"
 							+ chromosome + "'.");
 					return false;
 				}
 
 				if (build.equals("hg38") && !vcfFile.hasChrPrefix()) {
 					output.error("Your upload data contains chromosome '" + vcfFile.getRawChromosome()
-							+ "'. This is not a valid hg38 encoding. Please ensure that your input data is build hg38 and chromosome is encoded as 'chr"
+							+ "'. This is not a valid hg38 encoding. "
+							+ "Please ensure that your input data is build hg38 and chromosome is encoded as 'chr"
 							+ chromosome + "'.");
 					return false;
 				}
@@ -233,16 +240,27 @@ public class InputValidationCommand implements Callable<Integer> {
 			return false;
 		}
 
+		String buildStr = (build == null) ? "hg19" : build;
+		String phasedStr = phased ? "phased" : "unphased";
+
+		List<String> sortedChromosomes = chromosomeLookup.keySet().stream()
+				.map(ChromosomeUtil::nameToId)
+				.sorted()
+				.map(ChromosomeUtil::idToName)
+				.toList();
+
+		String allChromosomes = String.join(" ", sortedChromosomes);
+
 		List<String> summary = new ArrayList<>();
 		summary.add(validVcfFiles.size() + " valid VCF file(s) found.");
 		summary.add("");
 		summary.add("Samples: " + noSamples);
-		summary.add("Chromosomes: " + String.join(" ", chromosomes));
+		summary.add("Chromosomes: " + allChromosomes);
 		summary.add("SNPs: " + noSnps);
 		summary.add("Chunks: " + chunks);
-		summary.add("Datatype: " + (phased ? "phased" : "unphased"));
-		summary.add("Build: " + (build == null ? "hg19" : build));
-		summary.add("Reference Panel: " + panel.getId() + " (" + panel.getBuild() + ")" );
+		summary.add("Datatype: " + phasedStr);
+		summary.add("Build: " + buildStr);
+		summary.add("Reference Panel: " + panel.getId() + " (" + panel.getBuild() + ")");
 		summary.add("Population: " + population);
 		summary.add("Phasing: " + phasing);
 		summary.add("Mode: " + mode);
@@ -251,23 +269,35 @@ public class InputValidationCommand implements Callable<Integer> {
 		}
 		output.message(summary);
 
-		// init counters
+		// Set counters (they still need to be submitted by the Nextflow script!)
 		output.print("");
 		output.setCounter("samples", noSamples);
-		output.setCounter("variants",  noSnps);
-		output.setCounter("chromosomes", (long)noSamples * (long)chromosomes.size());
+		output.setCounter("variants", noSnps);
+		output.setCounter("chunks", chunks);
 		output.setCounter("runs", 1);
+
+		// Legacy counter (pre-multiplied with the number of samples).
+		output.setCounter("chromosomes", (long) noSamples * (long) sortedChromosomes.size());
+		// New counter (just the number of chromosomes per sample).
+		output.setCounter("chromosomes-per-sample", sortedChromosomes.size());
+
+		// Set values (they still need to be submitted by the Nextflow script!)
+		output.print("");
+		output.setValue("input-phase", phasedStr);
+		output.setValue("chromosome-list", allChromosomes);
 
 		return true;
 	}
 
+	/**
+	 * Checks if the provided population is supported by the provided refpanel.
+	 */
 	private boolean checkParameters() {
-
 		try {
-
 			if (!panel.supportsPopulation(population)) {
 				List<String> messages = new ArrayList<>();
-				messages.add("Population '" + population + "' is not supported by reference panel '" + panel.getId() + "'.");
+				messages.add(
+						"Population '" + population + "' is not supported by reference panel '" + panel.getId() + "'.");
 				if (panel.getPopulations() != null) {
 					messages.add("Available populations:");
 					for (RefPanelPopulation pop : panel.getPopulations()) {
@@ -277,7 +307,6 @@ public class InputValidationCommand implements Callable<Integer> {
 				output.error(messages);
 				return false;
 			}
-
 		} catch (Exception e) {
 			output.error("Unable to parse reference panel. ", e);
 			return false;
