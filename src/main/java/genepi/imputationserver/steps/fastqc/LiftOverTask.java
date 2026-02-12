@@ -10,10 +10,6 @@ import genepi.io.text.LineWriter;
 
 public class LiftOverTask implements ITask {
 
-	public static final String X_PAR1 = "X.PAR1";
-	public static final String X_PAR2 = "X.PAR2";
-	public static final String X_NON_PAR = "X.nonPAR";
-
 	// input variables
 	private String chainFile;
 	private String chunksDir;

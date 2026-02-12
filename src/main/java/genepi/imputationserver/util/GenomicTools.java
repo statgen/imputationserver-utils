@@ -1,7 +1,5 @@
 package genepi.imputationserver.util;
 
-import java.io.IOException;
-
 import genepi.imputationserver.steps.fastqc.SnpStats;
 import genepi.imputationserver.steps.fastqc.legend.SitesEntry;
 import genepi.imputationserver.steps.vcf.MinimalVariantContext;
@@ -26,28 +24,26 @@ public class GenomicTools {
 	private static final String A = "A";
 
 	public static boolean isValid(String allele) {
-		return allele.toUpperCase().equals(A) || allele.toUpperCase().equals(C) || allele.toUpperCase().equals(G)
-				|| allele.toUpperCase().equals(T);
+		return allele.equalsIgnoreCase(A)
+                || allele.equalsIgnoreCase(C)
+                || allele.equalsIgnoreCase(G)
+				|| allele.equalsIgnoreCase(T);
 	}
 
 	public static boolean match(MinimalVariantContext snp, SitesEntry refEntry) {
-
 		char studyRef = snp.getReferenceAllele().charAt(0);
 		char studyAlt = snp.getAlternateAllele().charAt(0);
 		char legendRef = refEntry.getRefAllele();
 		char legendAlt = refEntry.getAltAllele();
 
 		if (studyRef == legendRef && studyAlt == legendAlt) {
-
 			return true;
-
 		}
 
 		return false;
 	}
 
 	public static boolean alleleSwitch(MinimalVariantContext snp, SitesEntry refEntry) {
-
 		char studyRef = snp.getReferenceAllele().charAt(0);
 		char studyAlt = snp.getAlternateAllele().charAt(0);
 
@@ -56,59 +52,30 @@ public class GenomicTools {
 
 		// all simple cases
 		if (studyRef == legendAlt && studyAlt == legendRef) {
-
 			return true;
 		}
 
 		return false;
-
 	}
 
 	public static boolean strandFlip(MinimalVariantContext snp, SitesEntry refEntry) {
-
 		String studyGenotype = snp.getGenotype();
 		String referenceGenotype = refEntry.getGenotype();
 
-		if (studyGenotype.equals(AC)) {
-
-			return referenceGenotype.equals(TG);
-
-		} else if (studyGenotype.equals(CA)) {
-
-			return referenceGenotype.equals(GT);
-
-		} else if (studyGenotype.equals(AG)) {
-
-			return referenceGenotype.equals(TC);
-
-		} else if (studyGenotype.equals(GA)) {
-
-			return referenceGenotype.equals(CT);
-
-		} else if (studyGenotype.equals(TG)) {
-
-			return referenceGenotype.equals(AC);
-
-		} else if (studyGenotype.equals(GT)) {
-
-			return referenceGenotype.equals(CA);
-
-		} else if (studyGenotype.equals(CT)) {
-
-			return referenceGenotype.equals(GA);
-
-		} else if (studyGenotype.equals(TC)) {
-
-			return referenceGenotype.equals(AG);
-
-		}
-
-		return false;
-
-	}
+        return switch (studyGenotype) {
+            case AC -> referenceGenotype.equals(TG);
+            case CA -> referenceGenotype.equals(GT);
+            case AG -> referenceGenotype.equals(TC);
+            case GA -> referenceGenotype.equals(CT);
+            case TG -> referenceGenotype.equals(AC);
+            case GT -> referenceGenotype.equals(CA);
+            case CT -> referenceGenotype.equals(GA);
+            case TC -> referenceGenotype.equals(AG);
+            default -> false;
+        };
+    }
 
 	public static boolean complicatedGenotypes(MinimalVariantContext snp, SitesEntry refEntry) {
-
 		String studyGenotype = snp.getGenotype();
 		String referenceGenotype = refEntry.getGenotype();
 
@@ -123,57 +90,31 @@ public class GenomicTools {
 			return true;
 
 		}
+
 		return false;
 	}
 
 	public static boolean strandFlipAndAlleleSwitch(MinimalVariantContext snp, SitesEntry refEntry) {
-
 		String studyGenotype = snp.getGenotype();
 		String referenceGenotype = refEntry.getGenotype();
 
-		if (studyGenotype.equals(AC)) {
-
-			return referenceGenotype.equals(GT);
-
-		} else if (studyGenotype.equals(CA)) {
-
-			return referenceGenotype.equals(TG);
-
-		} else if (studyGenotype.equals(AG)) {
-
-			return referenceGenotype.equals(CT);
-
-		} else if (studyGenotype.equals(GA)) {
-
-			return referenceGenotype.equals(TC);
-
-		} else if (studyGenotype.equals(TG)) {
-
-			return referenceGenotype.equals(CA);
-
-		} else if (studyGenotype.equals(GT)) {
-
-			return referenceGenotype.equals(AC);
-
-		} else if (studyGenotype.equals(CT)) {
-
-			return referenceGenotype.equals(AG);
-
-		} else if (studyGenotype.equals(TC)) {
-
-			return referenceGenotype.equals(GA);
-
-		}
-
-		return false;
-
-	}
+        return switch (studyGenotype) {
+            case AC -> referenceGenotype.equals(GT);
+            case CA -> referenceGenotype.equals(TG);
+            case AG -> referenceGenotype.equals(CT);
+            case GA -> referenceGenotype.equals(TC);
+            case TG -> referenceGenotype.equals(CA);
+            case GT -> referenceGenotype.equals(AC);
+            case CT -> referenceGenotype.equals(AG);
+            case TC -> referenceGenotype.equals(GA);
+            default -> false;
+        };
+    }
 
 	public static ChiSquareObject chiSquare(MinimalVariantContext snp, SitesEntry refSnp, boolean strandSwap,
 											int size) {
 
 		// calculate allele frequency
-
 		double chisq = 0;
 
 		int refN = size;
@@ -187,7 +128,6 @@ public class GenomicTools {
 		if (!strandSwap) {
 			majorAlleleCount = snp.getHomRefCount();
 			minorAlleleCount = snp.getHomVarCount();
-
 		} else {
 			majorAlleleCount = snp.getHomVarCount();
 			minorAlleleCount = snp.getHomRefCount();
@@ -216,18 +156,15 @@ public class GenomicTools {
 	}
 
 	public static boolean alleleMismatch(MinimalVariantContext snp, SitesEntry refEntry) {
-
 		char studyRef = snp.getReferenceAllele().charAt(0);
 		char studyAlt = snp.getAlternateAllele().charAt(0);
 		char legendRef = refEntry.getRefAllele();
 		char legendAlt = refEntry.getAltAllele();
 
 		return studyRef != legendRef || studyAlt != legendAlt;
-
 	}
 
-	public static SnpStats calculateAlleleFreq(MinimalVariantContext snp, SitesEntry refSnp, int size)
-			throws IOException, InterruptedException {
+	public static SnpStats calculateAlleleFreq(MinimalVariantContext snp, SitesEntry refSnp, int size) {
 
 		boolean strandSwap = GenomicTools.strandFlipAndAlleleSwitch(snp, refSnp)
 				|| GenomicTools.alleleSwitch(snp, refSnp);
@@ -266,5 +203,4 @@ public class GenomicTools {
 
 		return output;
 	}
-
 }

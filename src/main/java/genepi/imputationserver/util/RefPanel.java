@@ -46,9 +46,6 @@ public class RefPanel {
 
 	private String range;
 
-	/**
-	 * 
-	 */
 	public RefPanel() {
 		defaultQcFilter = new HashMap<String, String>();
 		defaultQcFilter.put("overlap", OVERLAP);
@@ -145,7 +142,7 @@ public class RefPanel {
 	}
 
 	public boolean supportsPopulation(String population) {
-		if (population == null || population.equals("")) {
+		if (population == null || population.isEmpty()) {
 			return true;
 		}
 		return (getPopulation(population) != null);
@@ -161,6 +158,7 @@ public class RefPanel {
 				return population;
 			}
 		}
+
 		return null;
 	}
 
@@ -209,82 +207,81 @@ public class RefPanel {
 		this.mapBeagle = mapBeagle;
 	}
 
-	private static RefPanel fromProperties(Object properties) throws IOException {
+	private static RefPanel fromProperties(Map<String, Object> properties) throws IOException {
 
 		if (properties == null) {
 			throw new IOException("Propertie map not set.");
 		}
 
 		RefPanel panel = new RefPanel();
-		Map<String, Object> map = (Map<String, Object>) properties;
 
-		if (map.get("genotypes") != null) {
-			panel.setGenotypes(map.get("genotypes").toString());
+		if (properties.get("genotypes") != null) {
+			panel.setGenotypes(properties.get("genotypes").toString());
 		} else {
 			throw new IOException("Property 'genotypes' not found in json file.");
 		}
 
-		if (map.get("id") != null) {
-			panel.setId(map.get("id").toString());
+		if (properties.get("id") != null) {
+			panel.setId(properties.get("id").toString());
 		} else {
 			throw new IOException("Property 'id' not found in json file.");
 		}
 
-		if (map.get("sites") != null) {
-			panel.setSites(map.get("sites").toString());
+		if (properties.get("sites") != null) {
+			panel.setSites(properties.get("sites").toString());
 		} else {
 			throw new IOException("Property 'sites' not found in json file.");
 		}
 
-		if (map.get("mapEagle") != null) {
-			panel.setMapEagle(map.get("mapEagle").toString());
+		if (properties.get("mapEagle") != null) {
+			panel.setMapEagle(properties.get("mapEagle").toString());
 		}
 
-		if (map.get("refEagle") != null) {
-			panel.setRefEagle(map.get("refEagle").toString());
+		if (properties.get("refEagle") != null) {
+			panel.setRefEagle(properties.get("refEagle").toString());
 		}
 
-		if (map.get("mapBeagle") != null) {
-			panel.setMapBeagle(map.get("mapBeagle").toString());
+		if (properties.get("mapBeagle") != null) {
+			panel.setMapBeagle(properties.get("mapBeagle").toString());
 		}
 
-		if (map.get("refBeagle") != null) {
-			panel.setRefBeagle(map.get("refBeagle").toString());
+		if (properties.get("refBeagle") != null) {
+			panel.setRefBeagle(properties.get("refBeagle").toString());
 		}
 
-		if (map.get("populations") != null) {
-			panel.setPopulations(RefPanelPopulation.fromProperties((List<Map<String, Object>>) map.get("populations")));
+		if (properties.get("populations") != null) {
+			panel.setPopulations(
+					RefPanelPopulation.fromProperties((List<Map<String, Object>>) properties.get("populations")));
 		} else {
 			throw new IOException("Property 'populations' not found in json file.");
 		}
 
-		if (map.get("qcFilter") != null) {
-			panel.setQcFilter((Map<String, String>) map.get("qcFilter"));
+		if (properties.get("qcFilter") != null) {
+			panel.setQcFilter((Map<String, String>) properties.get("qcFilter"));
 		}
 
 		// optional parameters
-		if (map.get("reference_build") != null) {
-			panel.setBuild(map.get("reference_build").toString());
+		if (properties.get("reference_build") != null) {
+			panel.setBuild(properties.get("reference_build").toString());
 		}
 
-		if (map.get("build") != null) {
-			panel.setBuild(map.get("build").toString());
+		if (properties.get("build") != null) {
+			panel.setBuild(properties.get("build").toString());
 		}
 
-		if (map.get("range") != null) {
-			panel.setRange(map.get("range").toString());
+		if (properties.get("range") != null) {
+			panel.setRange(properties.get("range").toString());
 		} else {
 			panel.setRange(null);
 		}
 
-		if (map.get("mapMinimac") != null) {
-			panel.setMapMinimac(map.get("mapMinimac").toString());
+		if (properties.get("mapMinimac") != null) {
+			panel.setMapMinimac(properties.get("mapMinimac").toString());
 		} else {
 			panel.setMapMinimac(null);
 		}
 
 		return panel;
-
 	}
 
 	public static RefPanel loadFromJson(String filename) throws JsonSyntaxException, JsonIOException, IOException {
@@ -292,5 +289,4 @@ public class RefPanel {
 		Map<String, Object> panel = gson.fromJson(new FileReader(filename), Map.class);
 		return fromProperties(panel);
 	}
-
 }
