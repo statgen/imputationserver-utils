@@ -12,7 +12,7 @@ public class App {
 
 	public static final String APP = "imputationserver-utils";
 
-	public static final String VERSION = "1.5.3-statgen.3";
+	public static final String VERSION = "1.5.4-statgen.1";
 
 	public static final String URL = "https://github.com/statgen/imputationserver-utils";
 
