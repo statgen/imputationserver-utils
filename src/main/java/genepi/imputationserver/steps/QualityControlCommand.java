@@ -130,9 +130,13 @@ public class QualityControlCommand implements Callable<Integer> {
 
 		if (!build.equals(panel.getBuild())) {
 			vcfFilenames = liftOver(vcfFilenames);
+
 			if (vcfFilenames == null) {
 				return 1;
 			}
+
+			// Only called on successful liftover.
+			output.setCounter("liftover", 1);
 		}
 
 		if (analyzeFiles(vcfFilenames)) {
