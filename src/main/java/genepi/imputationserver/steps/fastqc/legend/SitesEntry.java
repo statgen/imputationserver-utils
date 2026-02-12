@@ -78,12 +78,9 @@ public class SitesEntry {
 	
 	public String getGenotype() {
 		if (genotype == null) {
-			StringBuilder builder = new StringBuilder(2);
-			builder.append(refAllele);
-			builder.append(altAllele);
-			genotype = builder.toString();
+            genotype = String.valueOf(refAllele) + altAllele;
 		}
+
 		return genotype;
 	}
-
 }

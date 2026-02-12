@@ -41,20 +41,11 @@ public class MinimalVariantContext {
 	}
 
 	public String getId() {
-
 		if (id == null) {
-			StringBuilder builder = new StringBuilder(7);
-			builder.append(getContig());
-			builder.append(":");
-			builder.append(getStart());
-			builder.append(":");
-			builder.append(getReferenceAllele());
-			builder.append(":");
-			builder.append(getAlternateAllele());
-			id = builder.toString();
+			id = getContig() + ":" + getStart() + ":" + getReferenceAllele() + ":" + getAlternateAllele();
 		}
-		return id;
 
+		return id;
 	}
 
 	public int getHetCount() {
@@ -172,19 +163,14 @@ public class MinimalVariantContext {
 	}
 
 	public String getGenotype() {
-
 		if (genotype == null) {
-			StringBuilder builder = new StringBuilder(2);
-			builder.append(referenceAllele);
-			builder.append(alternateAllele);
-			genotype = builder.toString();
+			genotype = referenceAllele + alternateAllele;
 		}
-		return genotype;
 
+		return genotype;
 	}
 
 	public String toString() {
 		return getId();
 	}
-
 }
