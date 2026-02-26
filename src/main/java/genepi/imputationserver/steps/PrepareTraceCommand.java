@@ -70,11 +70,6 @@ public class PrepareTraceCommand implements Callable<Integer> {
 			if (!buildGwas.equals(BUILD)) {
 
 				outputWriter.warning("Uploaded data is " + buildGwas + " and reference is " + BUILD + ".");
-				String chainFile = "";//TODO!!
-				/*if (chainFile == null) {
-					report.error("Currently we do not support liftOver from " + buildGwas + " to " + BUILD);
-					return false;
-				}*/
 
 				String fullPathChainFile = "";
 				if (!new File(fullPathChainFile).exists()) {
