@@ -7,32 +7,17 @@ import genepi.imputationserver.steps.PrepareTraceCommand;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
-@Command(name = App.APP, version = App.VERSION)
+@Command(name = BuildInfo.APP, version = BuildInfo.VERSION)
 public class App {
 
-	public static final String APP = "imputationserver-utils";
-
-	public static final String VERSION = "1.5.4-statgen.1";
-
-	public static final String URL = "https://github.com/statgen/imputationserver-utils";
-
-	public static final String COPYRIGHT = "(c) 2023-2025 Imputation Server Team";
-
-	public static String[] ARGS = new String[0];
+	private static final String COPYRIGHT = "(c) 2023-2026 Imputation Server Team";
 
 	public static void main(String[] args) {
-
 		System.err.println();
-		System.err.println(APP + " " + VERSION);
-		if (URL != null && !URL.isEmpty()) {
-			System.err.println(URL);
-		}
-		if (COPYRIGHT != null && !COPYRIGHT.isEmpty()) {
-			System.err.println(COPYRIGHT);
-		}
+		System.err.println(BuildInfo.APP + " " + BuildInfo.VERSION);
+		System.err.println(BuildInfo.URL);
+		System.err.println(COPYRIGHT);
 		System.err.println();
-
-		ARGS = args;
 
 		CommandLine commandLine = new CommandLine(new App());
 		commandLine.addSubcommand("validate", new InputValidationCommand());
@@ -42,7 +27,5 @@ public class App {
 		commandLine.setExecutionStrategy(new CommandLine.RunLast());
 		int result = commandLine.execute(args);
 		System.exit(result);
-
 	}
-
 }

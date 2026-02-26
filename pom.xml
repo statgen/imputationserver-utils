@@ -8,7 +8,7 @@
 	<version>1.5.4-statgen.1</version>
 	<packaging>jar</packaging>
 
-	<name>Imputationserver Utils</name>
+	<name>Imputation Server Utils</name>
 	<url>https://github.com/statgen/imputationserver-utils/</url>
 
 	<properties>
@@ -36,6 +36,54 @@
 				</configuration>
 			</plugin>
 
+			<plugin>
+				<artifactId>maven-resources-plugin</artifactId>
+				<version>3.4.0</version>
+				<executions>
+					<execution>
+						<id>generate-build-info</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>copy-resources</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${project.build.directory}/generated-sources/build-info</outputDirectory>
+
+							<resources>
+								<resource>
+									<directory>src/main/templates</directory>
+									<includes>
+										<include>**/*.java</include>
+									</includes>
+									<filtering>true</filtering>
+								</resource>
+							</resources>
+
+							<encoding>${project.build.sourceEncoding}</encoding>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>3.6.1</version>
+				<executions>
+					<execution>
+						<id>add-generated-sources</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>add-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>${project.build.directory}/generated-sources/build-info</source>
+							</sources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
