@@ -35,7 +35,7 @@ public class QualityControlCommand implements Callable<Integer> {
 	private String build = "hg19";
 
 	@Option(names = "--chunksize", description = "VCF chunksize", required = false)
-	private int chunksize = 20_000_000;
+	private int chunkSize = 20_000_000;
 
 	@Option(names = "--phasing-window", description = "Phasing window", required = false)
 	private int phasingWindow = 5_000_000;
@@ -66,7 +66,6 @@ public class QualityControlCommand implements Callable<Integer> {
 	private RefPanel panel = null;
 
 	public QualityControlCommand() {
-
 	}
 
 	public void setFiles(List<String> files) {
@@ -177,7 +176,7 @@ public class QualityControlCommand implements Callable<Integer> {
 	private boolean analyzeFiles(String[] vcfFilenames) {
 		StatisticsTask task = new StatisticsTask();
 		task.setVcfFilenames(vcfFilenames);
-		task.setChunkSize(chunksize);
+		task.setChunkSize(chunkSize);
 		task.setPhasingWindow(phasingWindow);
 		task.setPopulation(population);
 
@@ -210,6 +209,7 @@ public class QualityControlCommand implements Callable<Integer> {
 		task.setStatDir(statisticsOutput);
 		task.setBuild(panel.getBuild());
 
+		// Minimum reference overlap % setting, from the panel.
 		double referenceOverlap = panel.getQcFilterByKey("overlap");
 		task.setMinReferenceOverlap(referenceOverlap);
 
@@ -241,12 +241,17 @@ public class QualityControlCommand implements Callable<Integer> {
 
 		List<String> text = new ArrayList<>();
 
+		// Calculate observed reference overlap %
+		double inLegend = (double) task.getFoundInLegend();
+		double notLegend = (double) task.getNotFoundInLegend();
+		double overlapPercent = inLegend / (inLegend + notLegend) * 100.0;
+
 		text.add("<b>Statistics:</b>");
 		if (panel.getRange() != null) {
 			text.add("Ref. Panel Range: " + panel.getRange());
 		}
 		text.add("Alternative allele frequency > 0.5 sites: " + StringUtils.format(task.getAlternativeAlleles()));
-		text.add("Reference Overlap: " + StringUtils.format(task.getFoundInLegend() / (double) (task.getFoundInLegend() + task.getNotFoundInLegend()) * 100) + " %");
+		text.add("Reference Overlap: " + StringUtils.format(overlapPercent) + " %");
 		text.add("Match: " + StringUtils.format(task.getMatch()));
 		text.add("Allele switch: " + StringUtils.format(task.getAlleleSwitch()));
 		text.add("Strand flip: " + StringUtils.format(task.getStrandFlipSimple()));
@@ -310,45 +315,33 @@ public class QualityControlCommand implements Callable<Integer> {
 			text.add("\n<b>Error:</b> No chunks passed the QC step. Imputation cannot be started!");
 			output.error(text);
 			return false;
-
-		}
-		// strand flips (normal flip & allele switch + strand flip)
-		else if (task.getStrandFlipSimple() + task.getStrandFlipAndAlleleSwitch() > strandFlips) {
-			text.add("\n<b>Error:</b> More than " + strandFlips
-					+ " obvious strand flips have been detected. Please check strand. Imputation cannot be started!");
+		} else if (task.getStrandFlipSimple() + task.getStrandFlipAndAlleleSwitch() > strandFlips) {
+			// strand flips (normal flip & allele switch + strand flip)
+			text.add("\n<b>Error:</b> More than " + strandFlips + " obvious strand flips have been detected. "
+					+ "Please check strand. Imputation cannot be started!");
 			output.error(text);
 			return false;
-		}
-
-		// Check if too many allele switches are detected
-		else if (task.getAlleleSwitch() + task.getStrandFlipAndAlleleSwitch() > alleleSwitches) {
+		} else if (task.getAlleleSwitch() + task.getStrandFlipAndAlleleSwitch() > alleleSwitches) {
+			// Check if too many allele switches are detected
 			text.add("<br><b>Error:</b> More than " + alleleSwitches
 					+ " allele switches have been detected. Imputation cannot be started!");
 			output.error(text);
 			return false;
-		}
-
-		else if (task.isChrXMissingRate()) {
-			text.add(
-					"\n<b>Error:</b> Chromosome X nonPAR region includes > 10 % mixed genotypes. Imputation cannot be started!");
+		} else if (task.isChrXMissingRate()) {
+			text.add("\n<b>Error:</b> Chromosome X nonPAR region includes > 10 % mixed genotypes. "
+					+ "Imputation cannot be started!");
 			output.error(text);
 			return false;
-		}
-
-		else if (task.isChrXPloidyError()) {
-			text.add(
-					"\n<b>Error:</b> ChrX nonPAR region includes ambiguous samples (haploid and diploid positions). Imputation cannot be started! See "
-							+ "chrX-info.txt");
+		} else if (task.isChrXPloidyError()) {
+			text.add("\n<b>Error:</b> ChrX nonPAR region includes ambiguous samples (haploid and diploid positions). "
+					+ "Imputation cannot be started! See chrX-info.txt");
 			output.error(text);
 			return false;
-		}
-
-		else {
+		} else {
 			text.add(results.getMessage());
 			output.warning(text);
 			return true;
 		}
-
 	}
 
 	private HashSet<RangeEntry> parseRangeEntries(String ranges) {
