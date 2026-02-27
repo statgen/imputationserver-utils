@@ -258,7 +258,7 @@ public class InputValidationCommand implements Callable<Integer> {
 		output.print("");
 		output.setCounter("samples", noSamples);
 		output.setCounter("variants", noSnps);
-		output.setCounter("chunks", chunks);
+		output.setCounter("input-chunks", chunks);
 		output.setCounter("runs", 1);
 
 		// Legacy counter (pre-multiplied with the number of samples).

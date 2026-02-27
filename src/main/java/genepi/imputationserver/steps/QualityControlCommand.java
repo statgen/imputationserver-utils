@@ -297,14 +297,16 @@ public class QualityControlCommand implements Callable<Integer> {
 
 		long excludedChunks = task.getRemovedChunksSnps() + task.getRemovedChunksCallRate()
 				+ task.getRemovedChunksOverlap();
-
 		long overallChunks = task.getOverallChunks();
+		long remainingChunks = overallChunks - excludedChunks;
+
+		output.setCounter("remaining-chunks", remainingChunks);
 
 		if (excludedChunks > 0) {
-			text.add("\nRemaining chunk(s): " + StringUtils.format(overallChunks - excludedChunks));
+			text.add("\nRemaining chunk(s): " + StringUtils.format(remainingChunks));
 		}
 
-		if (excludedChunks == overallChunks) {
+		if (remainingChunks == 0) {
 			text.add("\n<b>Error:</b> No chunks passed the QC step. Imputation cannot be started!");
 			output.error(text);
 			return false;
