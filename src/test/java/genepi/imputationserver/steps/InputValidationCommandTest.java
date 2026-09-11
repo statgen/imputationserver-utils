@@ -314,6 +314,69 @@ public class InputValidationCommandTest extends AbstractTestcase {
 		assertEquals(905, count);
 	}
 
+	@Test
+	public void testUnphasedVcfWithoutPhasing() throws Exception {
+		String inputFolder = "test-data/data/single";
+
+		InputValidationCommand command = buildCommand(inputFolder);
+		command.setPhasing("no_phasing");
+		command.setReference("test-data/configs/hapmap-chr1/hapmap2.json");
+		command.setPopulation("eur");
+
+		assertEquals(1, (int) command.call());
+
+		// check error message
+		OutputReader log = new OutputReader(CLOUDGENE_LOG);
+		assertTrue(log.hasInMemory("::error:: Your input data is unphased. Please select an algorithm for phasing."));
+	}
+
+	@Test
+	public void testNoVfcFiles() throws Exception {
+		String inputFolder = "test-data/data/no-vcf-files";
+
+		InputValidationCommand command = buildCommand(inputFolder);
+		command.setReference("test-data/configs/hapmap-chr1/hapmap2.json");
+		command.setPopulation("eur");
+
+		assertEquals(1, (int) command.call());
+
+		// check error message
+		OutputReader log = new OutputReader(CLOUDGENE_LOG);
+		assertTrue(log.hasInMemory("::error:: The provided files are not VCF files."));
+	}
+
+	@Test
+	public void testMinSamples() throws Exception {
+		String inputFolder = "test-data/data/chr20-phased-1sample";
+
+		InputValidationCommand command = buildCommand(inputFolder);
+		command.setMinSamples(2);
+		command.setReference("test-data/configs/hapmap-chr1/hapmap2.json");
+		command.setPopulation("eur");
+
+		assertEquals(1, (int) command.call());
+
+		// check error message
+		OutputReader log = new OutputReader(CLOUDGENE_LOG);
+		assertTrue(log.hasInMemory("::error:: At least 2 samples must be uploaded."));
+	}
+
+	@Test
+	public void testMaxSamples() throws Exception {
+		String inputFolder = "test-data/data/single";
+
+		InputValidationCommand command = buildCommand(inputFolder);
+		command.setMaxSamples(1);
+		command.setReference("test-data/configs/hapmap-chr1/hapmap2.json");
+		command.setPopulation("eur");
+
+		assertEquals(1, (int) command.call());
+
+		// check error message
+		OutputReader log = new OutputReader(CLOUDGENE_LOG);
+		assertTrue(log.hasInMemory("::error:: The maximum allowed number of samples is 1."));
+	}
+
 	private InputValidationCommand buildCommand(String inputFolder) {
 		InputValidationCommand command = new InputValidationCommand();
 
