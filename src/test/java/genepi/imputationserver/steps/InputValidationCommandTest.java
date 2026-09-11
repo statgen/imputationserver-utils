@@ -377,6 +377,22 @@ public class InputValidationCommandTest extends AbstractTestcase {
 		assertTrue(log.hasInMemory("::error:: The maximum allowed number of samples is 1."));
 	}
 
+	@Test
+	public void testMaxChunkSnps() throws Exception {
+		String inputFolder = "test-data/data/max-chunk-snps";
+
+		InputValidationCommand command = buildCommand(inputFolder);
+		command.setBuild("hg38");
+		command.setReference("test-data/configs/hapmap-chr1/hapmap2.json");
+		command.setPopulation("eur");
+
+		assertEquals(1, (int) command.call());
+
+		// check error message
+		OutputReader log = new OutputReader(CLOUDGENE_LOG);
+		assertTrue(log.hasInMemory("::error:: Your upload data contains 25,000 SNPs in 1 chunks."));
+	}
+
 	private InputValidationCommand buildCommand(String inputFolder) {
 		InputValidationCommand command = new InputValidationCommand();
 

@@ -4,13 +4,10 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.Callable;
 
-import genepi.imputationserver.util.ChromosomeUtil;
-import genepi.imputationserver.util.OutputWriter;
+import genepi.imputationserver.util.*;
 
 import genepi.imputationserver.steps.vcf.VcfFile;
 import genepi.imputationserver.steps.vcf.VcfFileUtil;
-import genepi.imputationserver.util.RefPanel;
-import genepi.imputationserver.util.RefPanelPopulation;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -47,6 +44,9 @@ public class InputValidationCommand implements Callable<Integer> {
 
 	@Option(names = "--maxSamples", description = "Max Samples", required = false)
 	private int maxSamples = 25_000;
+
+	@Option(names = "--maxChunkSnps", description = "Max average SNPs per chunk", required = false)
+	private int maxChunkSnps = 20_000;
 
 	@Option(names = "--no-index", description = "Create no tabix index during validation", required = false)
 	private boolean noIndex = false;
@@ -104,6 +104,10 @@ public class InputValidationCommand implements Callable<Integer> {
 
 	public void setMinSamples(int minSamples) {
 		this.minSamples = minSamples;
+	}
+
+	public void setMaxChunkSnps(int maxChunkSnps) {
+		this.maxChunkSnps = maxChunkSnps;
 	}
 
 	@Override
@@ -172,7 +176,8 @@ public class InputValidationCommand implements Callable<Integer> {
 				// check if all files have same amount of samples
 				if (noSamples != 0 && noSamples != vcfFile.getNoSamples()) {
 					output.error("Please double check, if all uploaded VCF files include the same amount of samples ("
-							+ vcfFile.getNoSamples() + " vs " + noSamples + ")");
+							+ StringUtils.format(vcfFile.getNoSamples()) + " vs " + StringUtils.format(noSamples)
+							+ ")");
 					return false;
 				}
 
@@ -216,12 +221,20 @@ public class InputValidationCommand implements Callable<Integer> {
 		}
 
 		if (validVcfFiles.isEmpty()) {
-			output.error("The provided files are not VCF files (see <a href=\"/start.html#!pages/help\">Help</a>).");
+			output.error("The provided files are not VCF files.");
 			return false;
 		}
 
 		if (!phased && (phasing == null || phasing.isEmpty() || phasing.equals("no_phasing"))) {
 			output.error("Your input data is unphased. Please select an algorithm for phasing.");
+			return false;
+		}
+
+		if ((double) noSnps / (double) chunks > (double) maxChunkSnps) {
+			output.error("Your upload data contains " + StringUtils.format(noSnps) + " SNPs in "
+					+ StringUtils.format(chunks) + " chunks. "
+					+ "Input genotypes are expect to come from array genotypes with no more than "
+					+ StringUtils.format(maxChunkSnps) + " SNPs expected per chunk.");
 			return false;
 		}
 
