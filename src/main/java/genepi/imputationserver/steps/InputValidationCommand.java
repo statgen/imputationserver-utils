@@ -231,10 +231,10 @@ public class InputValidationCommand implements Callable<Integer> {
 		}
 
 		if ((double) noSnps / (double) chunks > (double) maxChunkSnps) {
-			output.error("Your upload data contains " + StringUtils.format(noSnps) + " SNPs in "
-					+ StringUtils.format(chunks) + " chunks. "
-					+ "Input genotypes are expect to come from array genotypes with no more than "
-					+ StringUtils.format(maxChunkSnps) + " SNPs expected per chunk.");
+			output.error("Your upload contains " + StringUtils.format(noSnps) + " SNPs across "
+					+ StringUtils.format(chunks) + (chunks == 1 ? " chunk, " : " chunks, ")
+					+ "exceeding the maximum of " + StringUtils.format(maxChunkSnps)
+					+ " SNPs per chunk for array genotype data.");
 			return false;
 		}
 
