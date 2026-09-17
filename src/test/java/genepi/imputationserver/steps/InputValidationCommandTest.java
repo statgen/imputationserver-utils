@@ -390,7 +390,7 @@ public class InputValidationCommandTest extends AbstractTestcase {
 
 		// check error message
 		OutputReader log = new OutputReader(CLOUDGENE_LOG);
-		assertTrue(log.hasInMemory("::error:: Your upload data contains 25,000 SNPs in 1 chunks."));
+		assertTrue(log.hasInMemory("::error:: Your upload contains 25,000 SNPs across 1 chunk"));
 	}
 
 	private InputValidationCommand buildCommand(String inputFolder) {
