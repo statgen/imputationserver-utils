@@ -11,7 +11,7 @@ public class App {
 
 	public static void main(String[] args) {
 		System.err.println();
-		System.out.println(BuildInfo.APP_NAME + " " + BuildInfo.VERSION + " (" + BuildInfo.COMMIT_ID_SHORT
+		System.err.println(BuildInfo.APP_NAME + " " + BuildInfo.VERSION + " (" + BuildInfo.COMMIT_ID_SHORT
 				+ (BuildInfo.COMMIT_DIRTY ? "*" : "") + ")");
 		System.err.println(BuildInfo.URL);
 		System.err.println(COPYRIGHT);
